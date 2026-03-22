@@ -34,3 +34,18 @@ jobs:
             git push origin develop
             echo "Branch 'develop' created from 'main'."
           fi
+
+      - name: Remove stale copilot branches
+        run: |
+          STALE_BRANCHES=(
+            "copilot/create-dashboard-monitoring-boilerplate"
+            "copilot/deploy-monitor"
+          )
+          for branch in "${STALE_BRANCHES[@]}"; do
+            if git ls-remote --heads origin "$branch" | grep -q "$branch"; then
+              git push origin --delete "$branch"
+              echo "Deleted stale branch: $branch"
+            else
+              echo "Branch '$branch' not found — skipping."
+            fi
+          done

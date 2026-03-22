@@ -115,6 +115,38 @@ feature/  bugfix/   (branches from develop)
 
 ---
 
+### GitFlow Tooling Recommendation
+
+**No plugin or external tool is required.** This repository relies on plain `git` commands and GitHub Actions for all GitFlow automation:
+
+| Mechanism | Purpose |
+|-----------|---------|
+| `init.yml` workflow | Creates `develop` from `main` and removes stale branches (run once via **Actions → Init**) |
+| `lint.yml` workflow | Validates PR titles (Conventional Commits) and branch names on every PR |
+| `ci.yml` / `release.yml` | Run tests and publish releases |
+
+If you prefer local tooling to speed up branch management, [**git-flow AVH Edition**](https://github.com/petervanderdoes/gitflow-avh) is the recommended option — it is actively maintained and wraps the same native `git` commands documented above:
+
+```bash
+# Install (macOS)
+brew install git-flow-avh
+
+# Install (Ubuntu/Debian)
+apt-get install git-flow
+
+# Initialise in the repo (accepts all defaults)
+git flow init -d
+
+# Examples
+git flow feature start my-feature   # → feature/my-feature from develop
+git flow feature finish my-feature  # → merges back into develop
+git flow hotfix start 1.0.1         # → hotfix/1.0.1 from main
+```
+
+> **Recommendation:** Use plain `git` + the GitHub Actions workflows for day-to-day work. The AVH plugin is a convenience wrapper — it does not add any capability that the documented native commands don't already provide.
+
+---
+
 ### Version Naming
 
 We follow **Semantic Versioning** ([semver.org](https://semver.org)):
@@ -319,6 +351,38 @@ develop ──────────────┼─────────
 feature/  bugfix/   (se crean desde develop)
   xxx       xxx
 ```
+
+---
+
+### Herramientas para GitFlow
+
+**No se requiere ningún plugin ni herramienta externa.** Este repositorio utiliza comandos `git` nativos y GitHub Actions para toda la automatización de GitFlow:
+
+| Mecanismo | Propósito |
+|-----------|-----------|
+| Workflow `init.yml` | Crea `develop` desde `main` y elimina ramas obsoletas (ejecutar una vez via **Actions → Init**) |
+| Workflow `lint.yml` | Valida los títulos de PR (Conventional Commits) y los nombres de ramas en cada PR |
+| `ci.yml` / `release.yml` | Ejecuta tests y publica releases |
+
+Si prefieres herramientas locales para agilizar la gestión de ramas, [**git-flow AVH Edition**](https://github.com/petervanderdoes/gitflow-avh) es la opción recomendada — está mantenida activamente y envuelve los mismos comandos `git` nativos documentados arriba:
+
+```bash
+# Instalar (macOS)
+brew install git-flow-avh
+
+# Instalar (Ubuntu/Debian)
+apt-get install git-flow
+
+# Inicializar en el repositorio (acepta todos los valores por defecto)
+git flow init -d
+
+# Ejemplos
+git flow feature start mi-funcionalidad   # → feature/mi-funcionalidad desde develop
+git flow feature finish mi-funcionalidad  # → fusiona de vuelta en develop
+git flow hotfix start 1.0.1               # → hotfix/1.0.1 desde main
+```
+
+> **Recomendación:** Usa `git` nativo + los workflows de GitHub Actions para el trabajo diario. El plugin AVH es un envoltorio de conveniencia — no aporta ninguna capacidad que los comandos nativos documentados no proporcionen ya.
 
 ---
 
