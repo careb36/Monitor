@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pull Request template following GitFlow conventions
 - Issue templates: Bug Report, Feature Request, Release Request
 - `CONTRIBUTING.md` with full GitFlow documentation and commit conventions
+- Automatic version tagging for `hotfix/**` branches (reads version from `pom.xml`)
+- Lint workflow to validate PR titles against Conventional Commits and enforce GitFlow branch naming
+- Init workflow to create the `develop` branch from `main` via `workflow_dispatch`
 
 ---
 

@@ -1,0 +1,36 @@
+name: Init – Create develop branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "yes" to confirm creating the develop branch from main'
+        required: true
+        default: "no"
+
+jobs:
+  create-develop:
+    name: Create develop branch
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'yes'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create develop branch if it does not exist
+        run: |
+          if git ls-remote --heads origin develop | grep -q develop; then
+            echo "Branch 'develop' already exists — nothing to do."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git checkout -b develop
+            git push origin develop
+            echo "Branch 'develop' created from 'main'."
+          fi
