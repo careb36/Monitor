@@ -11,3 +11,4 @@ class AppTest {
         assertNotNull(new App());
     }
 }
+

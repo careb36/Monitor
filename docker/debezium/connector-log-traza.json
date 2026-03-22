@@ -1,0 +1,38 @@
+{
+  "name": "oracle-log-traza-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.oracle.OracleConnector",
+    "tasks.max": "1",
+
+    "database.hostname": "oracle",
+    "database.port": "1521",
+    "database.user": "monitor_app",
+    "database.password": "monitor_pass",
+    "database.dbname": "XE",
+    "database.server.name": "oracle",
+
+    "database.history.kafka.bootstrap.servers": "kafka:29092",
+    "database.history.kafka.topic": "schema-changes.monitor",
+
+    "table.include.list": "MONITOR_APP.LOG_TRAZA",
+
+    "snapshot.mode": "initial",
+
+    "tombstones.on.delete": "false",
+
+    "transforms": "insertOnly",
+    "transforms.insertOnly.type": "io.debezium.transforms.Filter",
+    "transforms.insertOnly.language": "jsr223.groovy",
+    "transforms.insertOnly.condition": "value.op == 'c'",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+
+    "topic.prefix": "oracle",
+    "topic.creation.enable": "true",
+    "topic.creation.default.replication.factor": "1",
+    "topic.creation.default.partitions": "1"
+  }
+}
