@@ -19,7 +19,7 @@ spring:
     host: smtp.groupwise.example.com
     port: 25
     username: monitor-alerts@example.com
-    password: changeme
+    password: ${MAIL_PASSWORD:changeme}
     properties:
       mail:
         smtp:
