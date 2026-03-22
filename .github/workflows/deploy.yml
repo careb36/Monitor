@@ -1,0 +1,36 @@
+name: CD – Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build production artifact
+        run: mvn --batch-mode clean package -DskipTests
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitor-production
+          path: "**/target/*.jar"
+          retention-days: 30
+
+      # Add your deployment steps here (e.g., Docker push, server deploy, etc.)
+      # - name: Deploy to server
+      #   run: echo "Deploy step goes here"
