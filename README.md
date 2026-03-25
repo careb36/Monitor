@@ -2,70 +2,479 @@
 
 🇬🇧 [English](#english) | 🇪🇸 [Español](#español)
 
+![Java](https://img.shields.io/badge/Java-17-blue?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen?logo=springboot)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.6-231F20?logo=apachekafka)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![CI](https://github.com/careb36/Monitor/actions/workflows/ci.yml/badge.svg)
+
 ---
 
 <a id="english"></a>
 ## 🇬🇧 English
 
-A monitoring application built with Java.
+### Overview
+
+**Monitor** is a real-time operations monitoring dashboard that streams live events from a Java/Spring Boot backend to a Next.js/React frontend using **Server-Sent Events (SSE)**.
+
+It was built to give operations teams a single pane of glass for two critical data streams:
+
+- **Data events** — changes captured from an Oracle database via Debezium CDC (Change Data Capture) and Apache Kafka.
+- **Infrastructure events** — periodic health-check polls of secondary databases and background daemons, with automatic alerting when a target goes DOWN.
+
+Critical events trigger both an instant visual alert in the dashboard (with an audio cue) and an asynchronous email notification to the configured recipients.
+
+---
+
+### Key Features
+
+| Feature | Details |
+|---|---|
+| 🔴 **Real-time streaming** | Server-Sent Events push updates instantly to every connected browser tab — no polling required from the client. |
+| 📋 **CDC integration** | Debezium captures every `INSERT` into the Oracle `log_traza` table and forwards it to Kafka, which the backend consumes and rebroadcasts. |
+| 🩺 **Infrastructure health checks** | Scheduled polls (default: every 30 s) monitor databases and daemons, emitting events only on status transitions to reduce noise. |
+| 🔔 **Email alerts** | An async email is sent for every `CRITICAL` event without blocking the event pipeline. |
+| 🔊 **Audio cues** | The frontend plays a short beep sequence (Web Audio API) when a `CRITICAL` event arrives. |
+| 📊 **Live log dashboard** | The Next.js UI maintains a rolling log of up to 100 events and a per-source infrastructure status board. |
+| 🐳 **Docker Compose ready** | The full infrastructure stack (Oracle XE, Zookeeper, Kafka, Debezium) is defined in `docker-compose.yml`. |
+
+---
+
+### Architecture
+
+```
+Oracle DB
+  │  (INSERT into log_traza)
+  ▼
+Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
+                                        │
+                               KafkaConsumerService  ──►  EmailService (CRITICAL only, @Async)
+                                        │
+                                     EventBus  (CopyOnWriteArrayList<SseEmitter>)
+                                        ▲
+                               PollingService  ──────►  EmailService (CRITICAL only, @Async)
+                               (health checks, @Scheduled every 30 s)
+                                        │
+                                  SseController
+                                  GET /api/events/stream
+                                        │
+                                 Next.js Frontend
+                                 useMonitor() hook
+                                 EventSource API
+```
+
+**Event flow:**
+
+1. Debezium detects a new row in `log_traza` and publishes a CDC message to Kafka.
+2. `KafkaConsumerService` parses the Debezium envelope, builds a `UnifiedEvent`, and calls `EventBus.publish()`.
+3. `PollingService` runs on a fixed schedule, checks each target, and calls `EventBus.publish()` on status changes.
+4. `EventBus` fans out each `UnifiedEvent` to all active `SseEmitter` instances.
+5. The browser's `EventSource` receives the event under its named channel (`"data"` or `"infrastructure"`) and the `useMonitor` hook updates the React state.
+
+---
+
+### Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Java 17, Spring Boot 3.2.5, Maven |
+| Messaging | Apache Kafka 7.6 + Debezium 2.6 (CDC) |
+| Database | Oracle XE 11g |
+| Email | Spring Mail (SMTP / Groupwise) |
+| Frontend | Next.js 15, React 18, TypeScript |
+| Container | Docker, Docker Compose |
+| CI/CD | GitHub Actions |
+
+---
+
+### Prerequisites
+
+| Tool | Minimum version |
+|---|---|
+| Java (JDK) | 17 |
+| Maven | 3.9 |
+| Node.js | 18 |
+| npm | 9 |
+| Docker & Docker Compose | 20 / 2 |
+
+---
+
+### Quick Start
+
+#### 1. Clone the repository
+
+```bash
+git clone https://github.com/careb36/Monitor.git
+cd Monitor
+```
+
+#### 2. Start the infrastructure services
+
+```bash
+docker compose up -d
+```
+
+This starts Oracle XE, Zookeeper, Kafka, and Kafka Connect (Debezium). Wait for the health checks to pass (about 60 s for Oracle XE).
+
+#### 3. Configure the application
+
+Copy and edit the application properties to match your environment:
+
+```bash
+# src/main/resources/application.yml  (or application.properties)
+monitor:
+  kafka:
+    topic:
+      log-traza: <server>.<schema>.log_traza   # Debezium topic name
+  polling:
+    interval-ms: 30000
+    targets:
+      databases: [db-secondary-1, db-secondary-2]
+      daemons:   [daemon-reports, daemon-etl]
+  mail:
+    from: monitor@example.com
+    recipients: [ops-team@example.com]
+    subject-prefix: "CRITICAL ALERT"
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: monitor-group
+  mail:
+    host: smtp.example.com
+    port: 25
+```
+
+#### 4. Build and run the backend
+
+```bash
+mvn --batch-mode clean package -DskipTests
+java -jar target/monitor-*.jar
+```
+
+The backend starts on **http://localhost:8080**.
+
+#### 5. Install and run the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The dashboard opens on **http://localhost:3000**.
+
+Click **"Start Monitoring"** in the UI to open the SSE connection and begin receiving events.
+
+---
+
+### API Reference
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/events/stream` | Opens an SSE stream. Returns events named `data` or `infrastructure`, each carrying a JSON `UnifiedEvent` payload. The stream auto-reconnects via standard SSE semantics. |
+
+**`UnifiedEvent` payload schema:**
+
+```json
+{
+  "type":      "DATA | INFRASTRUCTURE",
+  "severity":  "INFO | WARNING | CRITICAL",
+  "source":    "string",
+  "message":   "string",
+  "timestamp": "2025-06-01T12:00:00Z"
+}
+```
+
+---
+
+### Running Tests
+
+```bash
+# Run all unit tests (no Spring context required)
+mvn --batch-mode test
+
+# Build + test (used by CI)
+mvn --batch-mode clean verify
+```
+
+```bash
+# Frontend lint
+cd frontend && npm run lint
+```
+
+---
 
 ### Branching Strategy
 
 This project follows the **GitFlow** branching model.
 
-| Branch        | Purpose                                      |
-|---------------|----------------------------------------------|
-| `main`        | Production-ready code (protected)            |
-| `develop`     | Integration branch for features (protected)  |
-| `feature/*`   | New features — branches from `develop`       |
-| `bugfix/*`    | Non-critical fixes — branches from `develop` |
-| `release/*`   | Release preparation — merges into `main` + `develop` |
-| `hotfix/*`    | Emergency production fixes — branches from `main`    |
+| Branch | Purpose |
+|---|---|
+| `main` | Production-ready code (protected) |
+| `develop` | Integration branch for features (protected) |
+| `feature/*` | New features — branches from `develop` |
+| `bugfix/*` | Non-critical fixes — branches from `develop` |
+| `release/*` | Release preparation — merges into `main` + `develop` |
+| `hotfix/*` | Emergency production fixes — branches from `main` |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow documentation, commit conventions, and PR guidelines.
+
+---
+
+### CI/CD
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| CI – Feature | Push/PR to `develop`, `feature/*`, `bugfix/*` | Build & test |
+| CI – Release | Push/PR on `release/*`, `hotfix/*` | Build, test & tag |
+| CD – Deploy | Push to `main` | Build & deploy |
+
+---
 
 ### Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
 
-### CI/CD
+---
 
-| Workflow      | Trigger                              | Purpose                  |
-|---------------|--------------------------------------|--------------------------|
-| CI – Feature  | Push/PR to `develop`, `feature/*`, `bugfix/*` | Build & test |
-| CI – Release  | Push/PR on `release/*`, `hotfix/*`  | Build, test & tag        |
-| CD – Deploy   | Push to `main`                       | Build & deploy           |
+### License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
 <a id="español"></a>
 ## 🇪🇸 Español
 
-Una aplicación de monitoreo construida con Java.
+### Descripción General
+
+**Monitor** es un panel de monitoreo de operaciones en tiempo real que transmite eventos en vivo desde un backend Java/Spring Boot a un frontend Next.js/React utilizando **Server-Sent Events (SSE)**.
+
+Fue construido para brindar a los equipos de operaciones una única vista centralizada de dos flujos de datos críticos:
+
+- **Eventos de datos** — cambios capturados desde una base de datos Oracle mediante Debezium CDC (Change Data Capture) y Apache Kafka.
+- **Eventos de infraestructura** — sondeos periódicos de salud a bases de datos secundarias y demonios en segundo plano, con alertas automáticas cuando un objetivo cae.
+
+Los eventos críticos activan simultáneamente una alerta visual en el panel (con señal de audio) y una notificación por correo electrónico asíncrona a los destinatarios configurados.
+
+---
+
+### Características Principales
+
+| Característica | Detalle |
+|---|---|
+| 🔴 **Streaming en tiempo real** | Los Server-Sent Events empujan actualizaciones instantáneamente a cada pestaña del navegador conectada, sin necesidad de polling desde el cliente. |
+| 📋 **Integración CDC** | Debezium captura cada `INSERT` en la tabla Oracle `log_traza` y lo reenvía a Kafka, que el backend consume y retransmite. |
+| 🩺 **Verificaciones de salud** | Sondeos programados (por defecto: cada 30 s) monitorean bases de datos y demonios, emitiendo eventos solo en transiciones de estado para reducir el ruido. |
+| 🔔 **Alertas por correo** | Se envía un correo asíncrono por cada evento `CRITICAL` sin bloquear el pipeline de eventos. |
+| 🔊 **Señales de audio** | El frontend reproduce una secuencia corta de pitidos (Web Audio API) cuando llega un evento `CRITICAL`. |
+| 📊 **Panel de log en vivo** | La interfaz Next.js mantiene un log rotativo de hasta 100 eventos y un tablero de estado de infraestructura por fuente. |
+| 🐳 **Docker Compose listo** | La pila de infraestructura completa (Oracle XE, Zookeeper, Kafka, Debezium) está definida en `docker-compose.yml`. |
+
+---
+
+### Arquitectura
+
+```
+Oracle DB
+  │  (INSERT en log_traza)
+  ▼
+Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
+                                        │
+                               KafkaConsumerService  ──►  EmailService (solo CRITICAL, @Async)
+                                        │
+                                     EventBus  (CopyOnWriteArrayList<SseEmitter>)
+                                        ▲
+                               PollingService  ──────►  EmailService (solo CRITICAL, @Async)
+                               (verificaciones de salud, @Scheduled cada 30 s)
+                                        │
+                                  SseController
+                                  GET /api/events/stream
+                                        │
+                                 Frontend Next.js
+                                 hook useMonitor()
+                                 EventSource API
+```
+
+**Flujo de eventos:**
+
+1. Debezium detecta una nueva fila en `log_traza` y publica un mensaje CDC en Kafka.
+2. `KafkaConsumerService` analiza el envelope de Debezium, construye un `UnifiedEvent` y llama a `EventBus.publish()`.
+3. `PollingService` se ejecuta en intervalos fijos, verifica cada objetivo y llama a `EventBus.publish()` en cambios de estado.
+4. `EventBus` distribuye cada `UnifiedEvent` a todos los `SseEmitter` activos.
+5. El `EventSource` del navegador recibe el evento en su canal nombrado (`"data"` o `"infrastructure"`) y el hook `useMonitor` actualiza el estado de React.
+
+---
+
+### Pila Tecnológica
+
+| Capa | Tecnología |
+|---|---|
+| Backend | Java 17, Spring Boot 3.2.5, Maven |
+| Mensajería | Apache Kafka 7.6 + Debezium 2.6 (CDC) |
+| Base de datos | Oracle XE 11g |
+| Correo | Spring Mail (SMTP / Groupwise) |
+| Frontend | Next.js 15, React 18, TypeScript |
+| Contenedores | Docker, Docker Compose |
+| CI/CD | GitHub Actions |
+
+---
+
+### Requisitos Previos
+
+| Herramienta | Versión mínima |
+|---|---|
+| Java (JDK) | 17 |
+| Maven | 3.9 |
+| Node.js | 18 |
+| npm | 9 |
+| Docker y Docker Compose | 20 / 2 |
+
+---
+
+### Inicio Rápido
+
+#### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/careb36/Monitor.git
+cd Monitor
+```
+
+#### 2. Iniciar los servicios de infraestructura
+
+```bash
+docker compose up -d
+```
+
+Esto inicia Oracle XE, Zookeeper, Kafka y Kafka Connect (Debezium). Espera a que los health checks pasen (aproximadamente 60 s para Oracle XE).
+
+#### 3. Configurar la aplicación
+
+Copia y edita las propiedades de la aplicación según tu entorno:
+
+```bash
+# src/main/resources/application.yml  (o application.properties)
+monitor:
+  kafka:
+    topic:
+      log-traza: <servidor>.<esquema>.log_traza   # nombre del topic de Debezium
+  polling:
+    interval-ms: 30000
+    targets:
+      databases: [db-secundaria-1, db-secundaria-2]
+      daemons:   [daemon-reportes, daemon-etl]
+  mail:
+    from: monitor@example.com
+    recipients: [equipo-ops@example.com]
+    subject-prefix: "ALERTA CRÍTICA"
+
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: monitor-group
+  mail:
+    host: smtp.example.com
+    port: 25
+```
+
+#### 4. Compilar y ejecutar el backend
+
+```bash
+mvn --batch-mode clean package -DskipTests
+java -jar target/monitor-*.jar
+```
+
+El backend se inicia en **http://localhost:8080**.
+
+#### 5. Instalar y ejecutar el frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+El panel se abre en **http://localhost:3000**.
+
+Haz clic en **"Start Monitoring"** en la interfaz para abrir la conexión SSE y comenzar a recibir eventos.
+
+---
+
+### Referencia de la API
+
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/events/stream` | Abre un stream SSE. Devuelve eventos con nombre `data` o `infrastructure`, cada uno con un payload JSON `UnifiedEvent`. El stream se reconecta automáticamente mediante la semántica estándar de SSE. |
+
+**Esquema del payload `UnifiedEvent`:**
+
+```json
+{
+  "type":      "DATA | INFRASTRUCTURE",
+  "severity":  "INFO | WARNING | CRITICAL",
+  "source":    "string",
+  "message":   "string",
+  "timestamp": "2025-06-01T12:00:00Z"
+}
+```
+
+---
+
+### Ejecución de Tests
+
+```bash
+# Ejecutar todos los tests unitarios (sin contexto Spring)
+mvn --batch-mode test
+
+# Compilar + probar (usado por CI)
+mvn --batch-mode clean verify
+```
+
+```bash
+# Lint del frontend
+cd frontend && npm run lint
+```
+
+---
 
 ### Estrategia de Ramas
 
 Este proyecto sigue el modelo de ramas **GitFlow**.
 
-| Rama          | Propósito                                              |
-|---------------|--------------------------------------------------------|
-| `main`        | Código listo para producción (protegida)               |
-| `develop`     | Rama de integración para funcionalidades (protegida)   |
-| `feature/*`   | Nuevas funcionalidades — se crean desde `develop`      |
-| `bugfix/*`    | Correcciones no críticas — se crean desde `develop`    |
-| `release/*`   | Preparación de versiones — se fusiona en `main` + `develop` |
-| `hotfix/*`    | Correcciones urgentes de producción — se crean desde `main` |
+| Rama | Propósito |
+|---|---|
+| `main` | Código listo para producción (protegida) |
+| `develop` | Rama de integración para funcionalidades (protegida) |
+| `feature/*` | Nuevas funcionalidades — se crean desde `develop` |
+| `bugfix/*` | Correcciones no críticas — se crean desde `develop` |
+| `release/*` | Preparación de versiones — se fusiona en `main` + `develop` |
+| `hotfix/*` | Correcciones urgentes de producción — se crean desde `main` |
 
 Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para la documentación completa del flujo de trabajo, convenciones de commits y guías para Pull Requests.
+
+---
+
+### CI/CD
+
+| Flujo de Trabajo | Disparador | Propósito |
+|---|---|---|
+| CI – Feature | Push/PR a `develop`, `feature/*`, `bugfix/*` | Compilar y probar |
+| CI – Release | Push/PR en `release/*`, `hotfix/*` | Compilar, probar y etiquetar |
+| CD – Deploy | Push a `main` | Compilar y desplegar |
+
+---
 
 ### Historial de Cambios
 
 Consulta [CHANGELOG.md](CHANGELOG.md) para ver el historial de versiones.
 
-### CI/CD
+---
 
-| Flujo de Trabajo | Disparador                                        | Propósito                       |
-|------------------|---------------------------------------------------|---------------------------------|
-| CI – Feature     | Push/PR a `develop`, `feature/*`, `bugfix/*`      | Compilar y probar               |
-| CI – Release     | Push/PR en `release/*`, `hotfix/*`                | Compilar, probar y etiquetar    |
-| CD – Deploy      | Push a `main`                                     | Compilar y desplegar            |
+### Licencia
+
+Este proyecto está bajo la [Licencia MIT](LICENSE).
