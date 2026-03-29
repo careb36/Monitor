@@ -210,6 +210,8 @@ chore(deps): update dependencies to latest versions
 
 ### Getting Started
 
+Before coding with AI assistants, read [AGENTS.md](AGENTS.md) first for repository-specific guardrails.
+
 ```bash
 # 1. Fork the repository (if external contributor)
 # 2. Clone your fork
@@ -448,6 +450,8 @@ chore(deps): actualizar dependencias a las últimas versiones
 ---
 
 ### Primeros Pasos
+
+Antes de programar con asistentes de IA, lee primero [AGENTS.md](AGENTS.md) para reglas específicas del repositorio.
 
 ```bash
 # 1. Haz un fork del repositorio (si eres colaborador externo)

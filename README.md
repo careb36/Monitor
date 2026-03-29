@@ -23,6 +23,7 @@ This project follows the **GitFlow** branching model.
 | `hotfix/*`    | Emergency production fixes — branches from `main`    |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow documentation, commit conventions, and PR guidelines.
+Before coding with AI assistants, read [AGENTS.md](AGENTS.md) first for repository-specific guardrails.
 
 ### Changelog
 
@@ -57,6 +58,7 @@ Este proyecto sigue el modelo de ramas **GitFlow**.
 | `hotfix/*`    | Correcciones urgentes de producción — se crean desde `main` |
 
 Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para la documentación completa del flujo de trabajo, convenciones de commits y guías para Pull Requests.
+Antes de programar con asistentes de IA, lee primero [AGENTS.md](AGENTS.md) para reglas específicas del repositorio.
 
 ### Historial de Cambios
 
