@@ -1,0 +1,38 @@
+@startuml
+!include _theme.puml
+
+title Monitor - Resilient Ingestion and Delivery Pipeline
+
+actor "Polling Targets" as Polling
+actor "Kafka / Debezium" as Kafka
+
+rectangle "Monitor Backend" {
+  component "PollingService\n(PullCollector)" as PollingService
+  component "KafkaConsumerService\n(PushIngestor)" as KafkaService
+  component "ReliableEventPipelineService\n(IngestionFacade)" as Pipeline
+  component "EventDeduplicator" as Dedup
+  component "InMemoryCriticalOutbox" as Outbox
+  component "SseEventNotifier" as SseNotifier
+  component "EmailEventNotifier" as EmailNotifier
+  component "EventBus" as EventBus
+}
+
+database "Outbox Entries" as OutboxDb
+cloud "SMTP" as Smtp
+collections "SSE Clients" as Clients
+
+Polling --> PollingService
+Kafka --> KafkaService
+PollingService --> Pipeline : ingest(event, metadata)
+KafkaService --> Pipeline : ingest(event, metadata)
+Pipeline --> Dedup : isDuplicate(event)
+Pipeline --> Outbox : save/findDue/markRetry
+Outbox --> OutboxDb
+Pipeline --> SseNotifier : dispatch all severities
+Pipeline --> EmailNotifier : dispatch CRITICAL
+SseNotifier --> EventBus
+EventBus --> Clients
+EmailNotifier --> Smtp
+
+@enduml
+
