@@ -1,0 +1,128 @@
+@startuml
+!include _theme.puml
+hide empty members
+skinparam linetype ortho
+
+title Monitor — Backend Class Diagram
+caption Core backend classes, configuration properties, and event model
+
+package "com.monitor" {
+  class App {
+    +main(args: String[]): void
+  }
+}
+
+package "com.monitor.controller" {
+  class SseController {
+    -SSE_TIMEOUT_MS: long
+    -eventBus: EventBus
+    +stream(): SseEmitter
+  }
+}
+
+package "com.monitor.service" {
+  class EventBus {
+    -emitters: List<SseEmitter>
+    +addEmitter(emitter: SseEmitter): void
+    +publish(event: UnifiedEvent): void
+    ~sendHeartbeat(): void
+    -broadcast(eventBuilder, operation): void
+    -sendToEmitter(emitter, eventBuilder, operation): boolean
+  }
+
+  class KafkaConsumerService {
+    -objectMapper: ObjectMapper
+    -eventBus: EventBus
+    -emailService: EmailService
+    +consume(message: String): void
+    -parseSeverity(raw: String): Severity
+  }
+
+  class PollingService {
+    -eventBus: EventBus
+    -emailService: EmailService
+    -targetsProperties: MonitorPollingTargetsProperties
+    -lastStatus: Map<String, Boolean>
+    +pollAll(): void
+    -check(target: String, category: String): void
+    ~simulatePing(target: String): boolean
+  }
+
+  class EmailService {
+    -mailSender: JavaMailSender
+    -mailProperties: MonitorMailProperties
+    +sendCriticalAlert(event: UnifiedEvent): void
+    -buildBody(event: UnifiedEvent): String
+  }
+}
+
+package "com.monitor.config" {
+  class JacksonConfig {
+    +objectMapper(): ObjectMapper
+  }
+
+  class MonitorMailProperties {
+    -from: String
+    -recipients: List<String>
+    -subjectPrefix: String
+  }
+
+  class MonitorPollingTargetsProperties {
+    -databases: List<String>
+    -daemons: List<String>
+  }
+}
+
+package "com.monitor.model" {
+  class UnifiedEvent {
+    -type: EventType
+    -severity: Severity
+    -source: String
+    -message: String
+    -timestamp: Instant
+  }
+
+  enum EventType {
+    DATA
+    INFRASTRUCTURE
+  }
+
+  enum Severity {
+    INFO
+    WARNING
+    CRITICAL
+  }
+}
+
+App ..> SseController
+App ..> PollingService
+App ..> EmailService
+
+SseController --> EventBus : registers emitter
+KafkaConsumerService --> EventBus : publish()
+PollingService --> EventBus : publish()
+KafkaConsumerService --> EmailService : sendCriticalAlert()
+PollingService --> EmailService : sendCriticalAlert()
+EmailService --> MonitorMailProperties
+PollingService --> MonitorPollingTargetsProperties
+KafkaConsumerService --> UnifiedEvent
+PollingService --> UnifiedEvent
+EventBus --> UnifiedEvent
+JacksonConfig ..> KafkaConsumerService : provides ObjectMapper
+
+UnifiedEvent --> EventType
+UnifiedEvent --> Severity
+
+note right of EventBus
+Central in-memory SSE fan-out.
+Also sends:
+- initial :connected comment
+- periodic :heartbeat comment
+end note
+
+note right of PollingService
+Only emits INFO on recovery/state changes,
+and CRITICAL when a target is DOWN.
+end note
+@enduml
+

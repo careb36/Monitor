@@ -19,7 +19,7 @@ spring:
     host: smtp.groupwise.example.com
     port: 25
     username: monitor-alerts@example.com
-    password: changeme
+    password: ${MAIL_PASSWORD:changeme}
     properties:
       mail:
         smtp:
@@ -64,6 +64,10 @@ monitor:
       - ops-team@example.com
       - oncall@example.com
     retry-interval-ms: 60000   # How often to retry failed email sends
+
+  # SSE keep-alive
+  sse:
+    heartbeat-interval-ms: 15000
 
 logging:
   level:

@@ -1,0 +1,53 @@
+@startuml
+!include _theme.puml
+
+title Monitor — CRITICAL Alert Sequence
+caption End-to-end flow for a CRITICAL event through SSE and email notification
+
+participant "Producer" as Producer
+participant "EventBus" as Bus
+participant "SSE Stream" as SSE
+participant "Monitor Hook" as Hook
+participant "EmailService\n@Async" as Email
+participant "SMTP Server" as SMTP
+actor "Ops / On-call" as Ops
+
+alt Polling target goes DOWN
+  Producer -> Producer : PollingService.check()
+  note right
+  Creates UnifiedEvent(
+    type = INFRASTRUCTURE,
+    severity = CRITICAL,
+    source = "CATEGORY :: target",
+    message = "target is DOWN"
+  )
+  end note
+else Debezium CDC message carries CRITICAL severity
+  Producer -> Producer : KafkaConsumerService.consume()
+  note right
+  Parses Debezium payload.after
+  and maps severity to CRITICAL
+  end note
+end
+
+Producer -> Bus : publish(event)
+Bus -> SSE : send named event
+SSE --> Hook : data or infrastructure event
+Hook -> Hook : handleEvent(event)
+Hook -> Hook : playCriticalAlert()
+
+Producer -> Email : sendCriticalAlert(event)
+activate Email
+Email -> SMTP : send(SimpleMailMessage)
+SMTP --> Ops : Deliver alert email
+Email --> Producer : async completion
+
+deactivate Email
+
+note over Producer
+Current CRITICAL producers in code:
+- PollingService when target is DOWN
+- KafkaConsumerService when parsed severity == CRITICAL
+end note
+@enduml
+

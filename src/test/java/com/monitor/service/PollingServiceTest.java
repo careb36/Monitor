@@ -1,5 +1,6 @@
 package com.monitor.service;
 
+import com.monitor.config.MonitorPollingTargetsProperties;
 import com.monitor.model.EventType;
 import com.monitor.model.Severity;
 import com.monitor.model.UnifiedEvent;
@@ -8,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
@@ -25,20 +25,21 @@ class PollingServiceTest {
     private EmailService emailService;
 
     private PollingService pollingService;
+    private MonitorPollingTargetsProperties targetsProperties;
 
     @BeforeEach
     void setUp() {
-        pollingService = new PollingService(eventBus, emailService) {
+        targetsProperties = new MonitorPollingTargetsProperties();
+        targetsProperties.setDatabases(List.of("oracle-secondary-01", "oracle-secondary-02"));
+        targetsProperties.setDaemons(List.of("batch-processor"));
+
+        pollingService = new PollingService(eventBus, emailService, targetsProperties) {
             @Override
             boolean simulatePing(String target) {
                 // Simulate that "oracle-secondary-02" is down, everything else up
                 return !"oracle-secondary-02".equals(target);
             }
         };
-        ReflectionTestUtils.setField(pollingService, "databaseTargets",
-                List.of("oracle-secondary-01", "oracle-secondary-02"));
-        ReflectionTestUtils.setField(pollingService, "daemonTargets",
-                List.of("batch-processor"));
     }
 
     @Test
