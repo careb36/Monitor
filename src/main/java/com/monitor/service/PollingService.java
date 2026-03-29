@@ -6,11 +6,9 @@ import com.monitor.model.Severity;
 import com.monitor.model.UnifiedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,19 +29,17 @@ public class PollingService implements PullCollector {
 
     private final EventBus eventBus;
     private final EmailService emailService;
-
-    @Value("${monitor.polling.targets.databases}")
-    private List<String> databaseTargets;
-
-    @Value("${monitor.polling.targets.daemons}")
-    private List<String> daemonTargets;
+    private final MonitorPollingTargetsProperties targetsProperties;
 
     /** Tracks the last known status so we only emit on transitions. */
     private final Map<String, Boolean> lastStatus = new ConcurrentHashMap<>();
 
-    public PollingService(EventBus eventBus, EmailService emailService) {
+    public PollingService(EventBus eventBus,
+                          EmailService emailService,
+                          MonitorPollingTargetsProperties targetsProperties) {
         this.eventBus = eventBus;
         this.emailService = emailService;
+        this.targetsProperties = targetsProperties;
     }
 
     // ── PullCollector contract ────────────────────────────────────────────────
@@ -68,10 +64,10 @@ public class PollingService implements PullCollector {
     @Scheduled(fixedDelayString = "${monitor.polling.interval-ms:30000}")
     public void pollAll() {
         log.debug("Running health-check poll cycle");
-        for (String target : databaseTargets) {
+        for (String target : targetsProperties.getDatabases()) {
             check(target, "DATABASE");
         }
-        for (String target : daemonTargets) {
+        for (String target : targetsProperties.getDaemons()) {
             check(target, "DAEMON");
         }
     }

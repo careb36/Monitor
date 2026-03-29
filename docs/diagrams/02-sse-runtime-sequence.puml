@@ -1,0 +1,54 @@
+@startuml
+!include _theme.puml
+
+title Monitor — SSE Runtime Sequence
+caption Stream establishment, keep-alive, and event delivery to the dashboard
+
+actor User
+participant "Dashboard UI" as UI
+participant "Monitor Hook" as Hook
+participant "SseController" as Controller
+participant "EventBus" as Bus
+participant "PollingService" as Polling
+participant "KafkaConsumerService" as KafkaConsumer
+
+User -> UI : Click "Iniciar Monitorización"
+UI -> Hook : start()
+Hook -> Hook : initAudio()
+Hook -> Controller : GET /api/events/stream
+Controller -> Bus : addEmitter(emitter)
+Bus --> Hook : :connected
+Hook -> Hook : onopen => connected = true
+Hook --> UI : Header shows CONECTADO
+
+loop Every monitor.sse.heartbeat-interval-ms
+  Bus --> Hook : :heartbeat
+end
+
+par Scheduled infrastructure check
+  Polling -> Bus : publish INFRASTRUCTURE event
+  Bus --> Hook : infrastructure event
+  Hook -> Hook : handleEvent()
+  Hook --> UI : Update infrastructure cards
+else CDC insert from Debezium/Kafka
+  KafkaConsumer -> Bus : publish DATA event
+  Bus --> Hook : data event
+  Hook -> Hook : handleEvent()
+  Hook --> UI : Prepend log entry
+end
+
+opt Event severity == CRITICAL
+  Hook -> Hook : playCriticalAlert()
+end
+
+opt Connection failure / backend restart
+  Hook -> Hook : onerror => connected = false
+  Hook --> UI : Header shows DESCONECTADO
+  note over Hook
+  Browser EventSource reconnects automatically.
+  On the next successful connection,
+  onopen sets connected = true again.
+  end note
+end
+@enduml
+

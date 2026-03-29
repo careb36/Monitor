@@ -1,9 +1,9 @@
 package com.monitor.service;
 
+import com.monitor.config.MonitorMailProperties;
 import com.monitor.model.UnifiedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
@@ -33,6 +33,7 @@ public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
+    private final MonitorMailProperties mailProperties;
 
     @Value("${monitor.mail.from}")
     private String from;
@@ -49,6 +50,7 @@ public class EmailService {
 
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+        this.mailProperties = mailProperties;
     }
 
     /**

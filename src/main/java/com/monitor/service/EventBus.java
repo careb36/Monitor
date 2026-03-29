@@ -99,7 +99,13 @@ public class EventBus {
         emitter.onCompletion(() -> emitters.remove(emitter));
         emitter.onTimeout(() -> emitters.remove(emitter));
         emitter.onError(e -> emitters.remove(emitter));
+        sendToEmitter(emitter, SseEmitter.event().comment("connected"), "initial SSE heartbeat");
         log.debug("SSE emitter registered. Active clients: {}", emitters.size());
+    }
+
+    @Scheduled(fixedDelayString = "${monitor.sse.heartbeat-interval-ms:15000}")
+    void sendHeartbeat() {
+        broadcast(SseEmitter.event().comment("heartbeat"), "periodic SSE heartbeat");
     }
 
     /**
@@ -130,15 +136,23 @@ public class EventBus {
     private void broadcastToEmitters(UnifiedEvent event) {
         List<SseEmitter> deadEmitters = new CopyOnWriteArrayList<>();
         for (SseEmitter emitter : emitters) {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name(event.getType().name().toLowerCase())
-                        .data(event));
-            } catch (IOException e) {
+            if (!sendToEmitter(emitter, eventBuilder, operation)) {
                 deadEmitters.add(emitter);
-                log.debug("Removing disconnected SSE emitter: {}", e.getMessage());
             }
         }
         emitters.removeAll(deadEmitters);
+    }
+
+    private boolean sendToEmitter(SseEmitter emitter,
+                                  SseEmitter.SseEventBuilder eventBuilder,
+                                  String operation) {
+        try {
+            emitter.send(eventBuilder);
+            return true;
+        } catch (IOException e) {
+            emitters.remove(emitter);
+            log.debug("Removing disconnected SSE emitter after {}: {}", operation, e.getMessage());
+            return false;
+        }
     }
 }
