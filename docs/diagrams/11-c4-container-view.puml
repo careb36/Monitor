@@ -1,0 +1,46 @@
+@startuml
+!include _theme.puml
+left to right direction
+
+title Monitor — C4 Container View
+caption Level 2: runtime containers and external dependencies used by the system
+
+actor "Browser User" as User
+
+rectangle "Monitor System" {
+  node "Frontend Container\nNext.js 15 / React 18\nlocalhost:3000 in dev" as Frontend
+  node "Backend Container\nSpring Boot 4 / Java 21\nlocalhost:8080" as Backend
+}
+
+database "Oracle XE\nsource data" as Oracle
+node "Debezium / Kafka Connect\nCDC connector" as Debezium
+queue "Kafka\nCDC transport" as Kafka
+cloud "SMTP / Groupwise" as SMTP
+
+User --> Frontend : Uses dashboard UI
+Frontend --> Backend : /api/events/stream\nvia Next rewrite in dev
+Backend --> Frontend : SSE comments + named events
+
+Oracle --> Debezium : Change data capture source
+Debezium --> Kafka : Publish Debezium envelopes
+Kafka --> Backend : Kafka listener consumes topic
+Backend --> SMTP : Send CRITICAL email alerts
+
+note right of Frontend
+Main frontend responsibilities:
+- render dashboard
+- maintain EventSource connection
+- track connection state via onopen/onerror
+- play critical alert sound
+end note
+
+note right of Backend
+Main backend responsibilities:
+- expose GET /api/events/stream
+- fan out events through EventBus
+- schedule infrastructure polling
+- consume CDC events from Kafka
+- emit initial and periodic SSE heartbeats
+end note
+@enduml
+

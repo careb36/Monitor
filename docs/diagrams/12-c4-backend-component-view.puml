@@ -1,0 +1,46 @@
+@startuml
+!include _theme.puml
+left to right direction
+
+title Monitor — C4 Backend Component View
+caption Level 3: key backend components inside the Spring Boot application
+
+rectangle "Spring Boot Backend" {
+  component "SseController\nGET /api/events/stream" as SseController
+  component "EventBus\nSSE fan-out hub" as EventBus
+  component "KafkaConsumerService\nCDC consumer" as KafkaConsumer
+  component "PollingService\nHealth checks" as Polling
+  component "EmailService\nAsync CRITICAL alerts" as EmailService
+  component "MonitorMailProperties\nTyped mail config" as MailProps
+  component "MonitorPollingTargetsProperties\nTyped polling config" as PollingProps
+  component "JacksonConfig\nObjectMapper bean" as JacksonConfig
+}
+
+queue "Kafka topic\nlog-traza" as Kafka
+cloud "SMTP / Groupwise" as SMTP
+component "Frontend client\nEventSource" as Frontend
+
+Frontend --> SseController : Subscribe to /api/events/stream
+SseController --> EventBus : register emitter
+EventBus --> Frontend : SSE comments + named events
+
+Kafka --> KafkaConsumer : @KafkaListener consume()
+KafkaConsumer --> EventBus : publish(DATA)
+KafkaConsumer --> EmailService : sendCriticalAlert() when CRITICAL
+KafkaConsumer --> JacksonConfig : uses ObjectMapper bean
+
+Polling --> PollingProps : read monitored targets
+Polling --> EventBus : publish(INFRASTRUCTURE)
+Polling --> EmailService : sendCriticalAlert() when DOWN
+EmailService --> MailProps : read sender / recipients / subject prefix
+EmailService --> SMTP : send plain-text email
+
+note right of EventBus
+Responsibilities:
+- hold active SseEmitters
+- send :connected on subscription
+- send periodic :heartbeat comments
+- broadcast data/infrastructure domain events
+end note
+@enduml
+
