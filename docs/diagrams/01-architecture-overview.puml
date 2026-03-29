@@ -1,0 +1,55 @@
+@startuml
+!include _theme.puml
+left to right direction
+
+title Monitor — Architecture Overview
+caption Real-time monitoring dashboard with SSE fan-out and CRITICAL alert flow
+
+actor "Browser User" as User
+component "Dashboard UI\nNext.js / React" as Frontend
+component "Monitor Hook\nEventSource client" as UseMonitor
+
+package "Spring Boot Backend\nJava 21 / Spring Boot 4" {
+  component "SseController\nGET /api/events/stream" as SseController
+  component "EventBus\nSSE fan-out + heartbeat" as EventBus
+  component "KafkaConsumerService\nCDC consumer" as KafkaConsumer
+  component "PollingService\nHealth checks" as Polling
+  component "EmailService\n@Async CRITICAL alerts" as EmailService
+}
+
+database "Oracle XE\nLOG_TRAZA" as Oracle
+queue "Kafka topic\noracle.SYSTEM.LOG_TRAZA" as Kafka
+component "Kafka Connect / Debezium" as Debezium
+cloud "SMTP / Groupwise" as Smtp
+
+User --> Frontend : Open dashboard
+Frontend --> UseMonitor : Start monitoring
+UseMonitor --> SseController : EventSource /api/events/stream
+SseController --> EventBus : Register SseEmitter
+EventBus --> UseMonitor : SSE stream\ncomments + named events
+
+Oracle --> Debezium : CDC changes
+Debezium --> Kafka : Debezium envelope
+Kafka --> KafkaConsumer : consume CDC event
+KafkaConsumer --> EventBus : publish(DATA)
+KafkaConsumer --> EmailService : sendCriticalAlert()\nif severity == CRITICAL
+
+Polling --> EventBus : publish(INFRASTRUCTURE)
+Polling --> EmailService : sendCriticalAlert()\nif target is DOWN
+EmailService --> Smtp : Plain-text email
+
+note right of EventBus
+Backend SSE contract:
+- event name = event.type.toLowerCase()
+- comments: :connected / :heartbeat
+- domain events: data / infrastructure
+end note
+
+note right of UseMonitor
+Frontend listens to named SSE events:
+- infrastructure
+- data
+Connection state comes from EventSource.onopen/onerror.
+end note
+@enduml
+

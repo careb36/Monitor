@@ -1,0 +1,52 @@
+@startuml
+!include _theme.puml
+
+title Monitor — Local Deployment / Integration Topology
+caption Containers, local services, and development routing used by the project
+
+node "Developer Workstation" {
+  artifact "Browser" as Browser
+
+  node "Frontend Dev Server\nlocalhost:3000" as NextDev {
+    artifact "Next.js app\nfrontend/" as NextApp
+  }
+
+  node "Backend App\nlocalhost:8080" as SpringApp {
+    artifact "Monitor Spring Boot JAR" as Jar
+  }
+}
+
+node "Docker Compose Network\nmonitor-net" {
+  database "Oracle XE 11g\n1521" as Oracle
+  node "Zookeeper\n2181" as Zookeeper
+  queue "Kafka\n9092 / 29092" as Kafka
+  node "Kafka Connect / Debezium\n8083" as Debezium
+}
+
+cloud "SMTP / Groupwise" as SMTP
+
+Browser --> NextDev : HTTP UI access
+NextDev --> SpringApp : rewrite /api/*\n(frontend/next.config.js)
+Browser --> SpringApp : optional direct API access
+
+SpringApp --> Kafka : Kafka consumer
+SpringApp --> SMTP : mail alerts
+Debezium --> Kafka : CDC events
+Oracle --> Debezium : database changes
+Kafka --> Zookeeper : broker coordination
+
+note right of NextDev
+Local development rewrite:
+/api/:path* -> http://localhost:8080/api/:path*
+end note
+
+note right of SpringApp
+Main runtime ports:
+- frontend dev: 3000
+- backend HTTP/SSE: 8080
+- Kafka host access: 9092
+- Debezium REST: 8083
+- Oracle: 1521
+end note
+@enduml
+
