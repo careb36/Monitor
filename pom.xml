@@ -47,6 +47,12 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- JPA / Outbox persistence -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
         <!-- Scheduling & async support (included in spring-boot-starter) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
