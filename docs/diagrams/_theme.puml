@@ -1,0 +1,44 @@
+' Shared visual style for Monitor diagrams
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam defaultFontName Segoe UI
+skinparam ArrowColor #345A7E
+skinparam ArrowThickness 1
+skinparam PackageStyle rectangle
+skinparam componentStyle rectangle
+skinparam BackgroundColor #FFFFFF
+skinparam NoteBackgroundColor #F7FAFC
+skinparam NoteBorderColor #A0AEC0
+skinparam SequenceMessageAlign center
+skinparam ResponseMessageBelowArrow true
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+skinparam Rectangle {
+  BorderColor #345A7E
+  BackgroundColor #F8FBFF
+}
+skinparam Component {
+  BorderColor #345A7E
+  BackgroundColor #F8FBFF
+}
+skinparam Database {
+  BorderColor #345A7E
+  BackgroundColor #FFF8E8
+}
+skinparam Queue {
+  BorderColor #345A7E
+  BackgroundColor #EEF7FF
+}
+skinparam Cloud {
+  BorderColor #345A7E
+  BackgroundColor #F6F5FF
+}
+skinparam Node {
+  BorderColor #345A7E
+  BackgroundColor #F8FBFF
+}
+skinparam Artifact {
+  BorderColor #345A7E
+  BackgroundColor #F8FBFF
+}
+
