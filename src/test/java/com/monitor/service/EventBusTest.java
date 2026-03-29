@@ -20,7 +20,12 @@ class EventBusTest {
 
     @BeforeEach
     void setUp() {
-        eventBus = new EventBus();
+        // Use a real AlertDeduplicator with a zero-second window so dedup never
+        // suppresses events during these unit tests (keeps tests independent of time).
+        AlertDeduplicator deduplicator = new AlertDeduplicator();
+        deduplicator.setWindowSeconds(0);
+        eventBus = new EventBus(deduplicator, 1000);
+        eventBus.startDrainer();
     }
 
     @Test

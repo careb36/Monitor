@@ -1,6 +1,6 @@
 package com.monitor.service;
 
-import com.monitor.config.MonitorPollingTargetsProperties;
+import com.monitor.collector.PullCollector;
 import com.monitor.model.EventType;
 import com.monitor.model.Severity;
 import com.monitor.model.UnifiedEvent;
@@ -17,9 +17,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * Every 30 seconds it evaluates the status of each monitored target and publishes
  * a {@link UnifiedEvent} of type {@link EventType#INFRASTRUCTURE} whenever the
  * status changes or the target is DOWN.
+ *
+ * <p>Implements {@link PullCollector} to participate in the unified collector
+ * abstraction: Monitor actively scrapes each target (Prometheus-style pull model)
+ * rather than waiting for agents to push data.</p>
  */
 @Service
-public class PollingService {
+public class PollingService implements PullCollector {
 
     private static final Logger log = LoggerFactory.getLogger(PollingService.class);
 
@@ -37,6 +41,25 @@ public class PollingService {
         this.emailService = emailService;
         this.targetsProperties = targetsProperties;
     }
+
+    // ── PullCollector contract ────────────────────────────────────────────────
+
+    @Override
+    public String name() {
+        return "infrastructure-poller";
+    }
+
+    /**
+     * Executes one full scrape cycle by delegating to {@link #pollAll()}.
+     * Called by the platform's collector framework; the {@code @Scheduled} annotation
+     * on {@link #pollAll()} drives the timing independently.
+     */
+    @Override
+    public void scrape() {
+        pollAll();
+    }
+
+    // ── Polling logic ─────────────────────────────────────────────────────────
 
     @Scheduled(fixedDelayString = "${monitor.polling.interval-ms:30000}")
     public void pollAll() {
