@@ -54,6 +54,10 @@ monitor:
       - ops-team@example.com
       - oncall@example.com
 
+  # SSE keep-alive
+  sse:
+    heartbeat-interval-ms: 15000
+
 logging:
   level:
     com.monitor: DEBUG
