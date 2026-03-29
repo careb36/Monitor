@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EventBusTest {
 
@@ -26,6 +27,37 @@ class EventBusTest {
     void addEmitter_doesNotThrow() {
         SseEmitter emitter = new SseEmitter(1000L);
         assertDoesNotThrow(() -> eventBus.addEmitter(emitter));
+    }
+
+    @Test
+    void addEmitter_sendsInitialHeartbeat() {
+        List<Object> received = new ArrayList<>();
+        SseEmitter emitter = new SseEmitter(5000L) {
+            @Override
+            public void send(SseEventBuilder builder) throws IOException {
+                received.add(builder);
+            }
+        };
+
+        eventBus.addEmitter(emitter);
+
+        assertEquals(1, received.size());
+    }
+
+    @Test
+    void sendHeartbeat_toRegisteredEmitter_sendsPeriodicHeartbeat() {
+        List<Object> received = new ArrayList<>();
+        SseEmitter emitter = new SseEmitter(5000L) {
+            @Override
+            public void send(SseEventBuilder builder) throws IOException {
+                received.add(builder);
+            }
+        };
+
+        eventBus.addEmitter(emitter);
+        eventBus.sendHeartbeat();
+
+        assertEquals(2, received.size());
     }
 
     @Test
@@ -48,7 +80,28 @@ class EventBusTest {
         UnifiedEvent event = new UnifiedEvent(EventType.DATA, Severity.CRITICAL, "src", "msg");
         eventBus.publish(event);
 
-        // At least one event was received by the emitter
-        assertDoesNotThrow(() -> eventBus.publish(event));
+        assertEquals(2, received.size());
+    }
+
+    @Test
+    void sendHeartbeat_removesDisconnectedEmitter() {
+        SseEmitter emitter = new SseEmitter(5000L) {
+            private boolean firstSend = true;
+
+            @Override
+            public void send(SseEventBuilder builder) throws IOException {
+                if (firstSend) {
+                    firstSend = false;
+                    return;
+                }
+                throw new IOException("disconnected");
+            }
+        };
+
+        eventBus.addEmitter(emitter);
+
+        assertDoesNotThrow(() -> eventBus.sendHeartbeat());
+        assertDoesNotThrow(() -> eventBus.publish(
+                new UnifiedEvent(EventType.DATA, Severity.INFO, "src", "msg")));
     }
 }

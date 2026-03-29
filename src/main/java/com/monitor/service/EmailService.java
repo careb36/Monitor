@@ -1,15 +1,13 @@
 package com.monitor.service;
 
+import com.monitor.config.MonitorMailProperties;
 import com.monitor.model.UnifiedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * Asynchronous email alert service.
@@ -22,18 +20,11 @@ public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
+    private final MonitorMailProperties mailProperties;
 
-    @Value("${monitor.mail.from}")
-    private String from;
-
-    @Value("${monitor.mail.recipients}")
-    private List<String> recipients;
-
-    @Value("${monitor.mail.subject-prefix:CRITICAL ALERT}")
-    private String subjectPrefix;
-
-    public EmailService(JavaMailSender mailSender) {
+    public EmailService(JavaMailSender mailSender, MonitorMailProperties mailProperties) {
         this.mailSender = mailSender;
+        this.mailProperties = mailProperties;
     }
 
     /**
@@ -45,9 +36,9 @@ public class EmailService {
     public void sendCriticalAlert(UnifiedEvent event) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(from);
-            message.setTo(recipients.toArray(new String[0]));
-            message.setSubject(subjectPrefix + " – " + event.getSource());
+            message.setFrom(mailProperties.getFrom());
+            message.setTo(mailProperties.getRecipients().toArray(new String[0]));
+            message.setSubject(mailProperties.getSubjectPrefix() + " – " + event.getSource());
             message.setText(buildBody(event));
             mailSender.send(message);
             log.info("Critical alert email sent for source: {}", event.getSource());
