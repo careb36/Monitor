@@ -1,0 +1,75 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: monitor-dashboard
+
+  # ─── Kafka ───────────────────────────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: monitor-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  # ─── Mail (Groupwise SMTP) ───────────────────────────────────────────────────
+  mail:
+    host: smtp.groupwise.example.com
+    port: 25
+    username: monitor-alerts@example.com
+    password: ${MAIL_PASSWORD:changeme}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+# ─── Application-specific settings ────────────────────────────────────────────
+monitor:
+  # Kafka topics
+  kafka:
+    topic:
+      log-traza: oracle.SYSTEM.LOG_TRAZA
+
+  # Health-check polling
+  polling:
+    interval-ms: 30000
+    targets:
+      databases:
+        - oracle-secondary-01
+        - oracle-secondary-02
+      daemons:
+        - batch-processor
+        - report-generator
+        - file-watcher
+
+  # Alert deduplication (AlertDeduplicator)
+  # Identical alerts (same type + severity + source) are suppressed for this window.
+  dedup:
+    window-seconds: 300        # 5 minutes — suppress repeat alerts within this period
+    cleanup-interval-ms: 60000 # How often to evict expired fingerprints from memory
+
+  # Internal alert queue (EventBus backpressure buffer)
+  queue:
+    capacity: 1000             # Max events buffered between producers and SSE fan-out
+
+  # Mail alert settings
+  mail:
+    from: monitor-alerts@example.com
+    subject-prefix: "CRITICAL ALERT"
+    recipients:
+      - ops-team@example.com
+      - oncall@example.com
+    retry-interval-ms: 60000   # How often to retry failed email sends
+
+  # SSE keep-alive
+  sse:
+    heartbeat-interval-ms: 15000
+
+logging:
+  level:
+    com.monitor: DEBUG
+    org.springframework.kafka: INFO
