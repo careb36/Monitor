@@ -1,6 +1,7 @@
 package com.monitor.service;
 
 import com.monitor.collector.PullCollector;
+import com.monitor.config.MonitorPollingTargetsProperties;
 import com.monitor.model.EventType;
 import com.monitor.model.Severity;
 import com.monitor.model.UnifiedEvent;

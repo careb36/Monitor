@@ -35,20 +35,11 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private final MonitorMailProperties mailProperties;
 
-    @Value("${monitor.mail.from}")
-    private String from;
-
-    @Value("${monitor.mail.recipients}")
-    private List<String> recipients;
-
-    @Value("${monitor.mail.subject-prefix:CRITICAL ALERT}")
-    private String subjectPrefix;
-
     /** Bounded queue that holds events whose initial send attempt failed. */
     private final LinkedBlockingQueue<UnifiedEvent> retryQueue =
             new LinkedBlockingQueue<>(500);
 
-    public EmailService(JavaMailSender mailSender) {
+    public EmailService(JavaMailSender mailSender, MonitorMailProperties mailProperties) {
         this.mailSender = mailSender;
         this.mailProperties = mailProperties;
     }
@@ -110,9 +101,9 @@ public class EmailService {
      */
     private void doSend(UnifiedEvent event) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(recipients.toArray(new String[0]));
-        message.setSubject(subjectPrefix + " – " + event.getSource());
+        message.setFrom(mailProperties.getFrom());
+        message.setTo(mailProperties.getRecipients().toArray(new String[0]));
+        message.setSubject(mailProperties.getSubjectPrefix() + " \u2013 " + event.getSource());
         message.setText(buildBody(event));
         mailSender.send(message);
         log.info("Critical alert email sent for source: {}", event.getSource());
