@@ -46,6 +46,16 @@ monitor:
         - report-generator
         - file-watcher
 
+  # Alert deduplication (AlertDeduplicator)
+  # Identical alerts (same type + severity + source) are suppressed for this window.
+  dedup:
+    window-seconds: 300        # 5 minutes — suppress repeat alerts within this period
+    cleanup-interval-ms: 60000 # How often to evict expired fingerprints from memory
+
+  # Internal alert queue (EventBus backpressure buffer)
+  queue:
+    capacity: 1000             # Max events buffered between producers and SSE fan-out
+
   # Mail alert settings
   mail:
     from: monitor-alerts@example.com
@@ -53,6 +63,7 @@ monitor:
     recipients:
       - ops-team@example.com
       - oncall@example.com
+    retry-interval-ms: 60000   # How often to retry failed email sends
 
 logging:
   level:
