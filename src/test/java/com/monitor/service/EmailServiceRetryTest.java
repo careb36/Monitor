@@ -1,5 +1,6 @@
 package com.monitor.service;
 
+import com.monitor.config.MonitorMailProperties;
 import com.monitor.model.EventType;
 import com.monitor.model.Severity;
 import com.monitor.model.UnifiedEvent;
@@ -10,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
@@ -33,10 +33,11 @@ class EmailServiceRetryTest {
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailService(mailSender);
-        ReflectionTestUtils.setField(emailService, "from", "monitor@example.com");
-        ReflectionTestUtils.setField(emailService, "recipients", List.of("ops@example.com"));
-        ReflectionTestUtils.setField(emailService, "subjectPrefix", "CRITICAL ALERT");
+        MonitorMailProperties mailProperties = new MonitorMailProperties();
+        mailProperties.setFrom("monitor@example.com");
+        mailProperties.setRecipients(List.of("ops@example.com"));
+        mailProperties.setSubjectPrefix("CRITICAL ALERT");
+        emailService = new EmailService(mailSender, mailProperties);
     }
 
     @Test
