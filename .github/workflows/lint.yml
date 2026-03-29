@@ -15,30 +15,70 @@ jobs:
   pr-title:
     name: Validate PR Title (Conventional Commits)
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      pull-requests: write  # required to auto-fix Copilot PR titles
 
     steps:
-      - name: Check PR title follows Conventional Commits
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          # Pattern: type(optional-scope): description
-          PATTERN='^(feat|fix|docs|style|refactor|test|chore|perf|ci)((\([a-zA-Z0-9_-]+\))?!?): .+'
-          if echo "$PR_TITLE" | grep -qE "$PATTERN"; then
-            echo "PR title is valid: $PR_TITLE"
-          else
-            echo "ERROR: PR title does not follow Conventional Commits format."
-            echo ""
-            echo "Expected format: <type>(<scope>): <description>"
-            echo "Examples:"
-            echo "  feat(auth): add JWT-based authentication"
-            echo "  fix(monitor): resolve null pointer on startup"
-            echo "  docs(contributing): update branching strategy"
-            echo ""
-            echo "Allowed types: feat, fix, docs, style, refactor, test, chore, perf, ci"
-            echo "Got: $PR_TITLE"
-            exit 1
-          fi
+      - name: Validate and auto-fix PR title (Copilot) or fail (humans)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const TYPES = 'feat|fix|docs|style|refactor|test|chore|perf|ci';
+            const CC_PATTERN = new RegExp(`^(${TYPES})(\\([a-zA-Z0-9_-]+\\))?!?: .+`);
+
+            let title = context.payload.pull_request.title;
+            const actor = context.actor;
+            const isCopilot = actor === 'copilot[bot]';
+
+            if (CC_PATTERN.test(title)) {
+              console.log(`✅ PR title is valid: "${title}"`);
+              return;
+            }
+
+            if (!isCopilot) {
+              core.setFailed(
+                `❌ PR title does not follow Conventional Commits format.\n\n` +
+                `  Expected : <type>(<scope>): <description>\n` +
+                `  Got      : "${title}"\n\n` +
+                `  Allowed types: ${TYPES.replace(/\|/g, ', ')}\n\n` +
+                `  Examples:\n` +
+                `    feat(auth): add JWT-based authentication\n` +
+                `    fix(monitor): resolve null pointer on startup\n` +
+                `    docs(contributing): update branching strategy`
+              );
+              return;
+            }
+
+            // ── Copilot PR: infer type and auto-fix ────────────────────────────────
+            console.log(`⚠️  Copilot PR title "${title}" is not Conventional Commits compliant — auto-fixing…`);
+
+            const lower = title.toLowerCase();
+            let type = 'chore';
+            if      (/\b(add|implement|introduce|create|new feature)\b/.test(lower)) type = 'feat';
+            else if (/\b(fix|resolve|correct|patch|repair|bug)\b/.test(lower))       type = 'fix';
+            else if (/\b(doc|readme|changelog|contributing)\b/.test(lower))          type = 'docs';
+            else if (/\b(test|spec|coverage)\b/.test(lower))                         type = 'test';
+            else if (/\b(refactor|restructure|rename|extract|clean)\b/.test(lower))  type = 'refactor';
+            else if (/\b(perf|performance|optimize|speed)\b/.test(lower))            type = 'perf';
+            else if (/\b(ci|pipeline|workflow|build|deploy)\b/.test(lower))          type = 'ci';
+
+            // Strip common Copilot prefixes like "copilot: " before rebuilding
+            let description = title
+              .replace(/^copilot[:\s-]+/i, '')
+              .replace(/^(feat|fix|docs|style|refactor|test|chore|perf|ci)[:\s-]+/i, '')
+              .trim();
+            description = description.charAt(0).toLowerCase() + description.slice(1);
+
+            const newTitle = `${type}: ${description}`;
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              title: newTitle,
+            });
+
+            console.log(`✅ Copilot PR title auto-fixed to: "${newTitle}"`);
 
   branch-name:
     name: Validate Branch Naming Convention
