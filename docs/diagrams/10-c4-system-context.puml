@@ -1,0 +1,37 @@
+@startuml
+!include _theme.puml
+left to right direction
+
+title Monitor — C4 System Context
+caption Level 1: people, external systems, and the Monitor software system boundary
+
+actor "Operations Analyst\nUses the live dashboard" as OpsUser
+actor "On-call Engineer\nResponds to CRITICAL alerts" as OnCall
+
+rectangle "Monitor System\nReal-time operations monitoring dashboard" as Monitor {
+  component "Monitor Backend + Frontend\nSSE-based monitoring workflow" as MonitorSystem
+}
+
+database "Oracle XE / source database\nLOG_TRAZA changes" as Oracle
+queue "Kafka\nCDC topic transport" as Kafka
+component "Debezium / Kafka Connect\nCDC extraction" as Debezium
+cloud "SMTP / Groupwise" as SMTP
+
+OpsUser --> MonitorSystem : Views infrastructure and data events
+OnCall <-- SMTP : Receives CRITICAL alert emails
+OnCall --> MonitorSystem : Opens dashboard during incidents
+
+Oracle --> Debezium : Database changes
+Debezium --> Kafka : Debezium envelopes
+Kafka --> MonitorSystem : CDC events consumed by backend
+MonitorSystem --> SMTP : Async CRITICAL notifications
+
+note right of MonitorSystem
+Primary responsibilities:
+- expose SSE stream to browser clients
+- unify CDC and polling events
+- push CRITICAL alerts to email
+- keep SSE connections alive with heartbeats
+end note
+@enduml
+
