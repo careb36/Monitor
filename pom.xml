@@ -28,6 +28,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kafka.version>4.2.0</kafka.version>
         <tomcat.version>11.0.20</tomcat.version>
+        <debezium.version>3.5.0.Final</debezium.version>
         <dependency-check.version>12.2.0</dependency-check.version>
     </properties>
 
@@ -36,6 +37,18 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- CDC / Debezium -->
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-embedded</artifactId>
+            <version>${debezium.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-connector-oracle</artifactId>
+            <version>${debezium.version}</version>
         </dependency>
 
         <!-- Kafka -->
@@ -122,6 +135,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>4.0.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
