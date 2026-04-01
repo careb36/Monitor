@@ -5,7 +5,7 @@
 [English](#english) | [Español](#español)
 
 ![Java](https://img.shields.io/badge/Java-21-blue?logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen?logo=springboot)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.4-brightgreen?logo=springboot)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.6-231F20?logo=apachekafka)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -59,7 +59,7 @@ The platform is optimized for **fast visibility**, **low operational friction**,
 
 | Layer | Technology |
 |---|---|
-| Backend | Java 21, Spring Boot 4.0.5, Maven |
+| Backend | Java 21, Spring Boot 3.4.4, Maven |
 | Frontend | Next.js 15, React 18, TypeScript |
 | Streaming | Server-Sent Events (`SseEmitter`, `EventSource`) |
 | Messaging | Kafka + Debezium CDC |
