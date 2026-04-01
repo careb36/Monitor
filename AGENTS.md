@@ -51,6 +51,13 @@ Use it as a guardrail document before changing runtime behavior, tests, SSE cont
 - `.github/workflows/lint.yml` enforces Conventional Commits and branch naming.
 - CI quality gates run before deploy; `main` deploy builds with `-DskipTests`.
 
+### CI Stability & Secure Development
+
+- **NEVER** push to `main` or `develop` without running `mvn clean compile` locally first.
+- **MUST** follow [Conventional Commits](https://www.conventionalcommits.org/) (e.g., `feat(ui): ...`, `fix(security): ...`, `chore(deps): ...`).
+- **MUST** use `feat`, `fix`, or `chore` for merge commit messages to pass the PR Title Linter.
+- **MUST** verify that the `pom.xml` version of Spring Boot is a stable release (e.g., 3.4.x) before pushing.
+
 ### Definition of Done
 
 - MUST preserve the backend/frontend SSE contract.
@@ -110,6 +117,13 @@ Este archivo ofrece a los agentes de IA un modelo operativo breve y alineado con
 - El parseo Kafka espera un payload Debezium con `payload.after` y `op == "c"`.
 - `.github/workflows/lint.yml` exige Conventional Commits y nomenclatura de ramas.
 - Los quality gates de CI se ejecutan antes del deploy; el deploy de `main` compila con `-DskipTests`.
+
+### Estabilidad de CI y Desarrollo Seguro
+
+- **NUNCA** hacer push a `main` o `develop` sin ejecutar `mvn clean compile` localmente.
+- **MUST** seguir [Conventional Commits](https://www.conventionalcommits.org/) (ej. `feat(ui): ...`, `fix(security): ...`, `chore(deps): ...`).
+- **MUST** usar `feat`, `fix`, o `chore` en los mensajes de merge para pasar el linter de títulos de PR.
+- **MUST** verificar que la versión de Spring Boot en `pom.xml` sea estable (ej. 3.4.x) antes de pushear.
 
 ### Definición de Terminado
 
