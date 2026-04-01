@@ -1,7 +1,10 @@
 package com.monitor.service;
 
 import com.monitor.model.UnifiedEvent;
-import org.springframework.context.annotation.Primary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -9,22 +12,46 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
-@Primary
+/**
+ * Optimized in-memory implementation of CriticalOutbox.
+ * Uses a bounded buffer for delivered entries to prevent memory leaks.
+ */
 @Component
+@ConditionalOnProperty(name = "monitor.outbox.jpa.enabled", havingValue = "false", matchIfMissing = true)
 public class InMemoryCriticalOutbox implements CriticalOutbox {
+
+    private static final Logger log = LoggerFactory.getLogger(InMemoryCriticalOutbox.class);
 
     private final AtomicLong sequence = new AtomicLong(0);
     private final Map<Long, OutboxEntry> entries = new ConcurrentHashMap<>();
+    private final Set<Long> pendingIds = ConcurrentHashMap.newKeySet();
+    private final ConcurrentLinkedQueue<Long> deliveredHistory = new ConcurrentLinkedQueue<>();
+
+    private final int maxDeliveredEntries;
+
+    public InMemoryCriticalOutbox(
+            @Value("${monitor.outbox.in-memory.max-delivered-entries:1000}") int maxDeliveredEntries) {
+        this.maxDeliveredEntries = maxDeliveredEntries;
+        log.info("Initialized InMemoryCriticalOutbox with maxDeliveredEntries={}", maxDeliveredEntries);
+    }
 
     @Override
     public long save(UnifiedEvent event) {
         long id = sequence.incrementAndGet();
         Instant now = Instant.now();
-        entries.put(id, new OutboxEntry(id, event, 0, now, now, false, ""));
+        OutboxEntry entry = new OutboxEntry(id, event, 0, now, now, false, "");
+        
+        entries.put(id, entry);
+        pendingIds.add(id);
+
+        log.info("CRITICAL EVENT SAVED: id={} type={} source={} message={}",
+                id, event.getType(), event.getSource(), event.getMessage());
+        
         return id;
     }
 
@@ -36,10 +63,11 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
     @Override
     public void markDelivered(long id) {
         OutboxEntry current = entries.get(id);
-        if (current == null) {
+        if (current == null || current.delivered()) {
             return;
         }
-        entries.put(id, new OutboxEntry(
+
+        OutboxEntry updated = new OutboxEntry(
                 current.id(),
                 current.event(),
                 current.attempts() + 1,
@@ -47,7 +75,23 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
                 Instant.now(),
                 true,
                 current.lastError()
-        ));
+        );
+
+        entries.put(id, updated);
+        pendingIds.remove(id);
+        deliveredHistory.offer(id);
+
+        log.info("CRITICAL EVENT DELIVERED: id={} source={} totalAttempts={}",
+                id, current.event().getSource(), updated.attempts());
+
+        // Evict old delivered entries if limit reached
+        while (deliveredHistory.size() > maxDeliveredEntries) {
+            Long oldestId = deliveredHistory.poll();
+            if (oldestId != null) {
+                entries.remove(oldestId);
+                log.trace("Evicted old delivered entry: id={}", oldestId);
+            }
+        }
     }
 
     @Override
@@ -56,7 +100,8 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
         if (current == null) {
             return;
         }
-        entries.put(id, new OutboxEntry(
+
+        OutboxEntry updated = new OutboxEntry(
                 current.id(),
                 current.event(),
                 current.attempts() + 1,
@@ -64,32 +109,39 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
                 nextAttemptAt,
                 false,
                 reason
-        ));
+        );
+
+        entries.put(id, updated);
+        // Ensure it's in pendingIds (should already be there)
+        pendingIds.add(id);
+
+        log.warn("CRITICAL EVENT RETRY: id={} attempt={} nextAt={} reason={}",
+                id, updated.attempts(), nextAttemptAt, reason);
     }
 
     @Override
     public List<OutboxEntry> findDue(Instant now, int limit) {
-        return entries.values().stream()
-                .filter(entry -> !entry.delivered())
-                .filter(entry -> !entry.nextAttemptAt().isAfter(now))
-                .sorted(Comparator.comparing(OutboxEntry::nextAttemptAt))
+        return pendingIds.stream()
+                .map(entries::get)
+                .filter(entry -> entry != null && !entry.nextAttemptAt().isAfter(now))
+                .sorted(Comparator.comparing((OutboxEntry e) -> e.event().getSeverity()).reversed()
+                        .thenComparing(OutboxEntry::nextAttemptAt))
                 .limit(limit)
                 .toList();
     }
 
     @Override
     public List<OutboxEntry> findAfterId(long lastId, int limit) {
-        return entries.values().stream()
-                .filter(entry -> entry.id() > lastId)
-                .sorted(Comparator.comparingLong(OutboxEntry::id))
+        return entries.keySet().stream()
+                .filter(id -> id > lastId)
+                .sorted()
                 .limit(limit)
+                .map(entries::get)
                 .toList();
     }
 
     @Override
     public long pendingCount() {
-        return entries.values().stream()
-                .filter(entry -> !entry.delivered())
-                .count();
+        return pendingIds.size();
     }
 }

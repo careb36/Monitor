@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -16,7 +17,14 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 
 @Entity
-@Table(name = "CRITICAL_OUTBOX")
+@Table(
+    name = "CRITICAL_OUTBOX",
+    indexes = {
+        // Supports the findDue query: WHERE delivered = false AND next_attempt_at <= :now
+        // Column order: low-cardinality (DELIVERED) first — Oracle can use prefix skip scan
+        @Index(name = "IDX_OUTBOX_PENDING_DUE", columnList = "DELIVERED, NEXT_ATTEMPT_AT")
+    }
+)
 public class CriticalOutboxEntity {
 
     @Id
