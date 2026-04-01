@@ -3,6 +3,9 @@ package com.monitor.service;
 import com.monitor.model.UnifiedEvent;
 import com.monitor.service.persistence.CriticalOutboxEntity;
 import com.monitor.service.persistence.CriticalOutboxRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -16,10 +19,17 @@ import java.util.Optional;
 @ConditionalOnProperty(name = "monitor.outbox.jpa.enabled", havingValue = "true")
 public class JpaCriticalOutbox implements CriticalOutbox {
 
-    private final CriticalOutboxRepository repository;
+    private static final Logger log = LoggerFactory.getLogger(JpaCriticalOutbox.class);
 
-    public JpaCriticalOutbox(CriticalOutboxRepository repository) {
+    private final CriticalOutboxRepository repository;
+    private final int maxAttempts;
+
+    public JpaCriticalOutbox(
+            CriticalOutboxRepository repository,
+            @Value("${monitor.outbox.jpa.max-attempts:5}") int maxAttempts) {
         this.repository = repository;
+        this.maxAttempts = maxAttempts;
+        log.info("JpaCriticalOutbox activated — persistence backend: JPA/Oracle, maxAttempts={}", maxAttempts);
     }
 
     @Override
@@ -37,7 +47,10 @@ public class JpaCriticalOutbox implements CriticalOutbox {
         entity.setNextAttemptAt(now);
         entity.setDelivered(false);
         entity.setLastError("");
-        return repository.save(entity).getId();
+        long id = repository.save(entity).getId();
+        log.info("CRITICAL EVENT SAVED: id={} type={} severity={} source={} message={}",
+                id, event.getType(), event.getSeverity(), event.getSource(), event.getMessage());
+        return id;
     }
 
     @Override
@@ -54,6 +67,8 @@ public class JpaCriticalOutbox implements CriticalOutbox {
             entity.setDelivered(true);
             entity.setNextAttemptAt(Instant.now());
             repository.save(entity);
+            log.info("CRITICAL EVENT DELIVERED: id={} source={} totalAttempts={}",
+                    id, entity.getSource(), entity.getAttempts());
         });
     }
 
@@ -66,6 +81,13 @@ public class JpaCriticalOutbox implements CriticalOutbox {
             entity.setNextAttemptAt(nextAttemptAt);
             entity.setLastError(reason);
             repository.save(entity);
+            if (entity.getAttempts() >= maxAttempts) {
+                log.error("CRITICAL EVENT DEAD LETTER: id={} source={} attempts={} reason={}",
+                        id, entity.getSource(), entity.getAttempts(), reason);
+            } else {
+                log.warn("CRITICAL EVENT RETRY: id={} source={} attempt={} nextAt={} reason={}",
+                        id, entity.getSource(), entity.getAttempts(), nextAttemptAt, reason);
+            }
         });
     }
 
