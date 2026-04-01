@@ -25,8 +25,8 @@ jobs:
           distribution: "temurin"
           cache: maven
 
-      - name: Build production artifact
-        run: mvn --batch-mode clean package -DskipTests
+      - name: Build and verify production artifact (includes OWASP dependency check)
+        run: mvn --batch-mode clean verify -Powasp
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

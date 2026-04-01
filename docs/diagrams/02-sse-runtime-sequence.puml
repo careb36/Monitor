@@ -27,11 +27,15 @@ end
 
 par Scheduled infrastructure check
   Polling -> Bus : publish INFRASTRUCTURE event
+  Bus -> Bus : iterate emitters
+  note right of Bus: Each broadcast task runs\nin a Virtual Thread
   Bus --> Hook : infrastructure event
   Hook -> Hook : handleEvent()
   Hook --> UI : Update infrastructure cards
 else CDC insert from Debezium/Kafka
   KafkaConsumer -> Bus : publish DATA event
+  Bus -> Bus : iterate emitters
+  note right of Bus: Each broadcast task runs\nin a Virtual Thread
   Bus --> Hook : data event
   Hook -> Hook : handleEvent()
   Hook --> UI : Prepend log entry

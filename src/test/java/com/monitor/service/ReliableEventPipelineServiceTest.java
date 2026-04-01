@@ -24,7 +24,7 @@ class ReliableEventPipelineServiceTest {
     @BeforeEach
     void setUp() {
         deduplicator = new EventDeduplicator(60000);
-        outbox = new InMemoryCriticalOutbox();
+        outbox = new InMemoryCriticalOutbox(100);
     }
 
     @Test
@@ -82,6 +82,32 @@ class ReliableEventPipelineServiceTest {
 
         OutboxEntry delivered = outbox.find(1L).orElseThrow();
         assertTrue(delivered.delivered());
+    }
+
+    @Test
+    void dispatchCritical_whenRetriesExhausted_marksRetryLimitReached() {
+        EventNotifier sse = new TestNotifier("sse", new CopyOnWriteArrayList<>(), true);
+        EventNotifier email = new TestNotifier("email", new CopyOnWriteArrayList<>(), false); // Email always fails
+
+        // Limit to 3 retries
+        ReliableEventPipelineService pipeline = new ReliableEventPipelineService(
+                deduplicator, outbox, sse, email, 10, 1, 3, 20);
+
+        UnifiedEvent critical = new UnifiedEvent(EventType.DATA, Severity.CRITICAL, "exhaust-test", "fail");
+        pipeline.ingest(critical, IngestMetadata.live("test"));
+
+        // Process until limit (3) is reached.
+        for (int i = 0; i < 5; i++) {
+            pipeline.dispatchCritical();
+            // Let a tiny bit of time pass for the 1ms delay to expire naturally
+            try { Thread.sleep(5); } catch (InterruptedException e) {}
+            // Manually trigger replay to put the failed event back into the dispatch queue
+            pipeline.replayCriticalDue();
+        }
+
+        OutboxEntry exhausted = outbox.find(1L).orElseThrow();
+        assertFalse(exhausted.delivered());
+        assertEquals("retry-limit-reached", exhausted.lastError());
     }
 
     private record TestNotifier(String channel, List<UnifiedEvent> sink, boolean result) implements EventNotifier {
