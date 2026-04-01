@@ -76,4 +76,4 @@ secrets/
 .vault/
 
 # Security tooling
-dependency-check-suppressions.xml
+# dependency-check-report.html (ignored below in Reports section)
