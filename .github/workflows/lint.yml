@@ -23,8 +23,11 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Pattern: type(optional-scope): description
+          # Also allows GitHub's default merge titles starting with "Merge "
           PATTERN='^(feat|fix|docs|style|refactor|test|chore|perf|ci)((\([a-zA-Z0-9_-]+\))?!?): .+'
-          if echo "$PR_TITLE" | grep -qE "$PATTERN"; then
+          MERGE_PATTERN='^Merge .+'
+
+          if echo "$PR_TITLE" | grep -qE "$PATTERN" || echo "$PR_TITLE" | grep -qE "$MERGE_PATTERN"; then
             echo "PR title is valid: $PR_TITLE"
           else
             echo "ERROR: PR title does not follow Conventional Commits format."
