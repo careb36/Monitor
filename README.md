@@ -4,8 +4,8 @@
 
 [English](#english) | [Español](#español)
 
-![Java](https://img.shields.io/badge/Java-17-blue?logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen?logo=springboot)
+![Java](https://img.shields.io/badge/Java-21-blue?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-brightgreen?logo=springboot)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.6-231F20?logo=apachekafka)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -126,7 +126,7 @@ Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
                                         │
                                KafkaConsumerService  ──►  EmailService (CRITICAL only, @Async)
                                         │
-                                     EventBus  (CopyOnWriteArrayList<SseEmitter>)
+                                     EventBus  (ConcurrentHashMap + Virtual Threads)
                                         ▲
                                PollingService  ──────►  EmailService (CRITICAL only, @Async)
                                (health checks, @Scheduled every 30 s)
@@ -144,7 +144,7 @@ Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
 1. Debezium detects a new row in `log_traza` and publishes a CDC message to Kafka.
 2. `KafkaConsumerService` parses the Debezium envelope, builds a `UnifiedEvent`, and calls `EventBus.publish()`.
 3. `PollingService` runs on a fixed schedule, checks each target, and calls `EventBus.publish()` on status changes.
-4. `EventBus` fans out each `UnifiedEvent` to all active `SseEmitter` instances.
+4. `EventBus` fans out each `UnifiedEvent` to all active `SseEmitter` instances using **Virtual Threads** (one lightweight thread per client).
 5. The browser's `EventSource` receives the event under its named channel (`"data"` or `"infrastructure"`) and the `useMonitor` hook updates the React state.
 
 ---
@@ -167,7 +167,7 @@ Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
 
 | Tool | Minimum version |
 |---|---|
-| Java (JDK) | 17 |
+| Java (JDK) | 21 |
 | Maven | 3.9 |
 | Node.js | 18 |
 | npm | 9 |
@@ -377,7 +377,7 @@ Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
                                         │
                                KafkaConsumerService  ──►  EmailService (solo CRITICAL, @Async)
                                         │
-                                     EventBus  (CopyOnWriteArrayList<SseEmitter>)
+                                     EventBus  (ConcurrentHashMap + Hilos Virtuales)
                                         ▲
                                PollingService  ──────►  EmailService (solo CRITICAL, @Async)
                                (verificaciones de salud, @Scheduled cada 30 s)
@@ -395,7 +395,7 @@ Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
 1. Debezium detecta una nueva fila en `log_traza` y publica un mensaje CDC en Kafka.
 2. `KafkaConsumerService` analiza el envelope de Debezium, construye un `UnifiedEvent` y llama a `EventBus.publish()`.
 3. `PollingService` se ejecuta en intervalos fijos, verifica cada objetivo y llama a `EventBus.publish()` en cambios de estado.
-4. `EventBus` distribuye cada `UnifiedEvent` a todos los `SseEmitter` activos.
+4. `EventBus` distribuye cada `UnifiedEvent` a todos los `SseEmitter` activos mediante **Hilos Virtuales** (un hilo ligero por cliente).
 5. El `EventSource` del navegador recibe el evento en su canal nombrado (`"data"` o `"infrastructure"`) y el hook `useMonitor` actualiza el estado de React.
 
 ---
@@ -404,7 +404,7 @@ Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
 
 | Capa | Tecnología |
 |---|---|
-| Backend | Java 17, Spring Boot 3.2.5, Maven |
+| Backend | Java 21, Spring Boot 4.0.5, Maven |
 | Mensajería | Apache Kafka 7.6 + Debezium 2.6 (CDC) |
 | Base de datos | Oracle XE 11g |
 | Correo | Spring Mail (SMTP / Groupwise) |
@@ -418,7 +418,7 @@ Debezium / Kafka Connect  ──►  Kafka Topic (log_traza)
 
 | Herramienta | Versión mínima |
 |---|---|
-| Java (JDK) | 17 |
+| Java (JDK) | 21 |
 | Maven | 3.9 |
 | Node.js | 18 |
 | npm | 9 |

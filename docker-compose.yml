@@ -8,6 +8,9 @@ version: "3.9"
 networks:
   monitor-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
 
 volumes:
   oracle-data:
@@ -19,9 +22,11 @@ services:
     container_name: monitor-oracle
     restart: unless-stopped
     environment:
-      ORACLE_PASSWORD: admin123
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?FATAL: Set ORACLE_PASSWORD env var}
+      MONITOR_APP_USER: ${MONITOR_APP_USER:monitor_app}
+      MONITOR_APP_PASS: ${MONITOR_APP_PASSWORD:?FATAL: Set MONITOR_APP_PASSWORD env var}
     ports:
-      - "1521:1521"
+      - "${ORACLE_PORT:-1521}:1521"
     volumes:
       - oracle-data:/opt/oracle/oradata
       - ./docker/oracle/init.sql:/container-entrypoint-initdb.d/01-init.sql:ro
@@ -41,10 +46,13 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
     networks:
       - monitor-net
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   # ── Kafka ─────────────────────────────────────────────────────────────────
   kafka:
@@ -64,7 +72,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_LOG_RETENTION_HOURS: 168
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT:-9092}:9092"
     networks:
       - monitor-net
     healthcheck:
@@ -95,6 +103,12 @@ services:
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
     ports:
-      - "8083:8083"
+      - "${CONNECT_PORT:-8083}:8083"
     networks:
       - monitor-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
