@@ -15,7 +15,7 @@ Use it as a guardrail document before changing runtime behavior, tests, SSE cont
 
 ### Core Architecture
 
-- `src/main/java/com/monitor/service/EventBus.java` is the in-memory SSE fan-out hub.
+- `src/main/java/com/monitor/service/EventBus.java` is the high-performance SSE fan-out hub using **Java 21 Virtual Threads**.
 - `src/main/java/com/monitor/controller/SseController.java` exposes `GET /api/events/stream`.
 - Producers are:
   - `KafkaConsumerService` for CDC / Debezium events
@@ -26,6 +26,7 @@ Use it as a guardrail document before changing runtime behavior, tests, SSE cont
 
 - MUST keep SSE event naming aligned to `event.getType().name().toLowerCase()`.
 - MUST keep frontend listeners aligned with backend event names in `frontend/src/hooks/useMonitor.ts`.
+- MUST use **Virtual Threads** for parallel broadcasting to ensure O(1) scalability for 10k+ clients.
 - MUST update all relevant locations when adding a new event type:
   - `src/main/java/com/monitor/model/EventType.java`
   - `frontend/src/lib/types.ts`
@@ -37,13 +38,15 @@ Use it as a guardrail document before changing runtime behavior, tests, SSE cont
 
 - MUST prefer service-level tests in `src/test/java/com/monitor/service/`.
 - MUST use plain JUnit 5 + Mockito for service tests; avoid loading the Spring context unless truly necessary.
+- MUST use **Awaitility** or similar asynchronous verification for `EventBus` tests, as broadcasting is now non-blocking.
 - SHOULD preserve `PollingService.simulatePing` as package-private for anonymous-subclass test overrides.
 - SHOULD use `ReflectionTestUtils.setField(...)` only where typed constructor/configuration alternatives do not already exist.
 
 ### Runtime and Delivery Notes
 
 - `src/main/java/com/monitor/App.java` enables both scheduling and async execution.
-- `EventBus` now sends `:connected` and periodic `:heartbeat` comments on the SSE stream.
+- `EventBus` uses `ConcurrentHashMap.newKeySet()` and `Executors.newVirtualThreadPerTaskExecutor()` for fan-out.
+- `EventBus` sends `:connected` and periodic `:heartbeat` comments on the SSE stream.
 - Kafka parsing expects a Debezium payload with `payload.after` and `op == "c"`.
 - `.github/workflows/lint.yml` enforces Conventional Commits and branch naming.
 - CI quality gates run before deploy; `main` deploy builds with `-DskipTests`.
@@ -57,14 +60,14 @@ Use it as a guardrail document before changing runtime behavior, tests, SSE cont
 
 ---
 
-## Espa駉l
+## Espa帽ol
 
-### Prop髎ito
+### Prop贸sito
 
-Este archivo ofrece a los agentes de IA un modelo operativo breve y alineado con la implementaci髇 actual de `Monitor`.
-趕alo como documento de guardrails antes de cambiar comportamiento de runtime, pruebas, contratos SSE o configuraci髇 de entrega.
+Este archivo ofrece a los agentes de IA un modelo operativo breve y alineado con la implementaci贸n actual de `Monitor`.
+脷salo como documento de guardrails antes de cambiar comportamiento de runtime, pruebas, contratos SSE o configuraci贸n de entrega.
 
-### Inicio R醦ido
+### Inicio R谩pido
 
 - MUST ejecutar validaciones de backend con `mvn --batch-mode clean verify`.
 - MUST ejecutar el frontend localmente con `cd frontend && npm install && npm run dev`.
@@ -72,43 +75,45 @@ Este archivo ofrece a los agentes de IA un modelo operativo breve y alineado con
 
 ### Arquitectura Central
 
-- `src/main/java/com/monitor/service/EventBus.java` es el hub SSE en memoria para fan-out.
+- `src/main/java/com/monitor/service/EventBus.java` es el hub SSE de alto rendimiento mediante **Hilos Virtuales de Java 21**.
 - `src/main/java/com/monitor/controller/SseController.java` expone `GET /api/events/stream`.
 - Los productores son:
   - `KafkaConsumerService` para eventos CDC / Debezium
   - `PollingService` para chequeos programados de infraestructura
-- `EmailService` env韆 notificaciones as韓cronas solo para condiciones CRITICAL.
+- `EmailService` env铆a notificaciones as铆ncronas solo para condiciones CRITICAL.
 
 ### Contratos No Negociables
 
 - MUST mantener la nomenclatura SSE alineada a `event.getType().name().toLowerCase()`.
 - MUST mantener alineados los listeners frontend con los nombres emitidos por backend en `frontend/src/hooks/useMonitor.ts`.
+- MUST utilizar **Hilos Virtuales** para el despacho paralelo, asegurando escalabilidad O(1) para 10.000+ clientes.
 - MUST actualizar todas las ubicaciones relevantes cuando se agregue un nuevo tipo de evento:
   - `src/main/java/com/monitor/model/EventType.java`
   - `frontend/src/lib/types.ts`
   - `frontend/src/hooks/useMonitor.ts`
-- MUST mantener el flujo CRITICAL de extremo a extremo: visibilidad en dashboard por SSE m醩 `EmailService.sendCriticalAlert(...)`.
-- MUST mantener la configuraci髇 en `src/main/resources/application.yml`; no hardcodear topics, destinatarios ni targets de polling.
+- MUST mantener el flujo CRITICAL de extremo a extremo: visibilidad en dashboard por SSE m谩s `EmailService.sendCriticalAlert(...)`.
+- MUST mantener la configuraci贸n en `src/main/resources/application.yml`; no hardcodear topics, destinatarios ni targets de polling.
 
-### Gu韆 de Testing
+### Gu铆a de Testing
 
 - MUST preferir pruebas de servicios en `src/test/java/com/monitor/service/`.
 - MUST usar JUnit 5 + Mockito sin cargar el contexto Spring para pruebas de servicios, salvo necesidad real.
-- SHOULD preservar `PollingService.simulatePing` como package-private para overrides con subclases an髇imas en tests.
-- SHOULD usar `ReflectionTestUtils.setField(...)` solo cuando no exista ya una alternativa mejor basada en constructor o configuraci髇 tipada.
+- MUST utilizar **Awaitility** o verificaci贸n as铆ncrona similar para los tests de `EventBus`, ya que el despacho ahora es no bloqueante.
+- SHOULD preservar `PollingService.simulatePing` como package-private para overrides con subclases an贸nimas en tests.
+- SHOULD usar `ReflectionTestUtils.setField(...)` solo cuando no exista ya una alternativa mejor basada en constructor o configuraci贸n tipada.
 
 ### Notas de Runtime y Entrega
 
-- `src/main/java/com/monitor/App.java` habilita scheduling y ejecuci髇 async.
-- `EventBus` ahora env韆 comentarios `:connected` y `:heartbeat` peri骴icos en el stream SSE.
+- `src/main/java/com/monitor/App.java` habilita scheduling y ejecuci贸n async.
+- `EventBus` utiliza `ConcurrentHashMap.newKeySet()` y `Executors.newVirtualThreadPerTaskExecutor()` para el fan-out.
+- `EventBus` env铆a comentarios `:connected` y `:heartbeat` peri贸dicos en el stream SSE.
 - El parseo Kafka espera un payload Debezium con `payload.after` y `op == "c"`.
 - `.github/workflows/lint.yml` exige Conventional Commits y nomenclatura de ramas.
 - Los quality gates de CI se ejecutan antes del deploy; el deploy de `main` compila con `-DskipTests`.
 
-### Definici髇 de Terminado
+### Definici贸n de Terminado
 
 - MUST preservar el contrato SSE entre backend y frontend.
-- MUST preservar la duplicaci髇 de alertas CRITICAL tanto a SSE como a email.
+- MUST preservar la duplicaci贸n de alertas CRITICAL tanto a SSE como a email.
 - MUST mantener pruebas alineadas con cambios de comportamiento.
 - MUST pasar `mvn --batch-mode clean verify` antes de considerar completo un cambio.
-
