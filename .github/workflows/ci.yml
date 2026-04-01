@@ -26,6 +26,14 @@ jobs:
           distribution: "temurin"
           cache: maven
 
+      - name: Cache OWASP Dependency Check Database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data/
+          key: ${{ runner.os }}-owasp-db-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-owasp-db-
+
       - name: Build with Maven
         run: mvn --batch-mode clean verify
 
