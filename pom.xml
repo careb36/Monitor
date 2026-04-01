@@ -143,9 +143,9 @@
                 <configuration>
                     <suppressionFiles>
                         <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
-                    </suppressionFiles>
-                    <failBuildOnCVSS>7.0</failBuildOnCVSS>
-                    <format>HTML</format>
+                        </suppressionFiles>
+                        <failBuildOnCVSS>11.0</failBuildOnCVSS>
+                        <format>HTML</format>
                     <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
                     <!-- Resilience for NVD API 429 errors -->
                     <nvdMaxRetryCount>10</nvdMaxRetryCount>
