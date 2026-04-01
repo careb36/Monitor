@@ -130,7 +130,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <id>enforce-java</id>
@@ -140,7 +140,7 @@
                         <configuration>
                             <rules>
                                 <requireJavaVersion>
-                                    <version>[21,22)</version>
+                                    <version>[21,22]</version>
                                     <message>EL PROYECTO MONITOR REQUIERE JAVA 21 (LTS). TU VERSION DE JAVA NO ES COMPATIBLE.</message>
                                 </requireJavaVersion>
                             </rules>
@@ -158,7 +158,7 @@
                     <suppressionFiles>
                         <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
                         </suppressionFiles>
-                        <failBuildOnCVSS>11.0</failBuildOnCVSS>
+                        <failBuildOnCVSS>8.0</failBuildOnCVSS>
                         <format>HTML</format>
                     <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
                     <!-- Resilience for NVD API 429 errors -->
@@ -176,5 +176,26 @@
             </plugin>
         </plugins>
     </build>
+
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
 </project>
