@@ -13,16 +13,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### [Unreleased]
 
 #### Added
-- GitFlow branching strategy with `main`, `develop`, `feature/`, `release/`, `hotfix/`, and `bugfix/` branches
-- GitHub Actions CI workflows for feature, develop, release, and hotfix branches
-- GitHub Actions CD workflow for automated deployment from `main`
-- Pull Request template following GitFlow conventions
-- Issue templates for bugs, features, and releases
-- `CONTRIBUTING.md` with GitFlow workflow and commit conventions
-- Automatic version tagging for `hotfix/**` branches using the version from `pom.xml`
-- Lint workflow to validate PR titles and enforce branch naming conventions
-- Init workflow to create the `develop` branch from `main` via `workflow_dispatch`
-- Bilingual project documentation baseline in English and Spanish
+- EventBus stress test suite for validating 10,000+ concurrent clients.
+- Global Virtual Threads enablement in `application.yml`.
+
+#### Changed
+- Refactored `EventBus` to use `ConcurrentHashMap.newKeySet()` and Virtual Threads for parallel broadcast. This resolves severe GC pressure and sequential blocking issues for large-scale SSE fan-out.
+- Updated `EventBusTest` to support asynchronous event verification using `Awaitility`.
 
 ---
 
@@ -35,16 +31,15 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), y el 
 ### [Sin versión]
 
 #### Agregado
+- Suite de pruebas de estrés para `EventBus` validando 10.000+ clientes concurrentes.
+- Habilitación global de hilos virtuales (Virtual Threads) en `application.yml`.
+
+#### Modificado
+- Refactorización de `EventBus` utilizando `ConcurrentHashMap.newKeySet()` e hilos virtuales para el despacho paralelo. Esto resuelve problemas críticos de presión de GC y bloqueo secuencial en el fan-out de SSE a gran escala.
+- Actualización de `EventBusTest` para soportar la verificación asincrónica de eventos mediante `Awaitility`.
+
+#### Agregado (Previo)
 - Estrategia de ramas GitFlow con `main`, `develop`, `feature/`, `release/`, `hotfix/` y `bugfix/`
-- Flujos de CI con GitHub Actions para ramas feature, develop, release y hotfix
-- Flujo de CD con GitHub Actions para despliegue automático desde `main`
-- Plantilla de Pull Request siguiendo las convenciones de GitFlow
-- Plantillas de issues para bugs, funcionalidades y releases
-- `CONTRIBUTING.md` con flujo GitFlow y convenciones de commits
-- Etiquetado automático de versiones para ramas `hotfix/**` usando la versión de `pom.xml`
-- Flujo de lint para validar títulos de PR y reforzar la nomenclatura de ramas
-- Flujo de inicialización para crear la rama `develop` desde `main` mediante `workflow_dispatch`
-- Línea base de documentación bilingüe en inglés y español
 
 ---
 

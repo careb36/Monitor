@@ -6,15 +6,15 @@
 
     "database.hostname": "oracle",
     "database.port": "1521",
-    "database.user": "monitor_app",
-    "database.password": "monitor_pass",
+    "database.user": "${env:MONITOR_APP_USER}",
+    "database.password": "${env:MONITOR_APP_PASS}",
     "database.dbname": "XE",
     "database.server.name": "oracle",
 
     "database.history.kafka.bootstrap.servers": "kafka:29092",
     "database.history.kafka.topic": "schema-changes.monitor",
 
-    "table.include.list": "MONITOR_APP.LOG_TRAZA",
+    "table.include.list": "${env:MONITOR_APP_USER:MONITOR_APP}.LOG_TRAZA",
 
     "snapshot.mode": "initial",
 

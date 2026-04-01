@@ -4,28 +4,34 @@ server:
 spring:
   application:
     name: monitor-dashboard
+  threads:
+    virtual:
+      enabled: true
 
   # ─── Kafka ───────────────────────────────────────────────────────────────────
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: monitor-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
-  # ─── Mail (Groupwise SMTP) ───────────────────────────────────────────────────
+  # ─── Mail (SMTP with TLS – CWE-319: no cleartext transmission) ──────────────
   mail:
-    host: smtp.groupwise.example.com
-    port: 25
-    username: monitor-alerts@example.com
-    password: ${MAIL_PASSWORD:changeme}
+    host: ${MAIL_HOST:smtp.groupwise.example.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:monitor-alerts@example.com}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: true
           starttls:
-            enable: false
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 # ─── Application-specific settings ────────────────────────────────────────────
 monitor:
@@ -58,18 +64,102 @@ monitor:
 
   # Mail alert settings
   mail:
-    from: monitor-alerts@example.com
+    from: ${MAIL_FROM:monitor-alerts@example.com}
     subject-prefix: "CRITICAL ALERT"
     recipients:
-      - ops-team@example.com
-      - oncall@example.com
+      - ${MAIL_RECIPIENT_1:ops-team@example.com}
+      - ${MAIL_RECIPIENT_2:oncall@example.com}
     retry-interval-ms: 60000   # How often to retry failed email sends
 
   # SSE keep-alive
   sse:
     heartbeat-interval-ms: 15000
 
+  # ─── Critical Outbox ────────────────────────────────────────────────────────
+  outbox:
+    jpa:
+      enabled: ${MONITOR_OUTBOX_JPA_ENABLED:false}
+    in-memory:
+      max-delivered-entries: 500
+
+  # ─── CORS (OWASP A05: never wildcard in production) ─────────────────────────
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+  # ─── Rate limiting (Bucket4j – CWE-307 brute-force prevention) ─────────────
+  rate-limit:
+    enabled: true
+    capacity: 20               # Max requests per time window
+    refill-tokens: 20          # Tokens to add per refill
+    refill-duration-seconds: 60 # Refill window
+
 logging:
   level:
     com.monitor: DEBUG
     org.springframework.kafka: INFO
+    org.springframework.security: INFO
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Profile: dev – relaxed for local development
+# Activate with: --spring.profiles.active=dev
+# ════════════════════════════════════════════════════════════════════════════════
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+monitor:
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:8080
+
+logging:
+  level:
+    com.monitor: DEBUG
+    org.springframework.security: DEBUG
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Profile: staging – production-like with more verbose logging
+# Activate with: --spring.profiles.active=staging
+# ════════════════════════════════════════════════════════════════════════════════
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+
+monitor:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+logging:
+  level:
+    com.monitor: INFO
+    org.springframework.security: INFO
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Profile: prod – strict security, minimal logging, aggressive rate limits
+# Activate with: --spring.profiles.active=prod
+# ════════════════════════════════════════════════════════════════════════════════
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+monitor:
+  outbox:
+    jpa:
+      enabled: true
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  rate-limit:
+    capacity: 10
+    refill-tokens: 10
+    refill-duration-seconds: 60
+
+logging:
+  level:
+    com.monitor: WARN
+    org.springframework.security: WARN
+    org.springframework.kafka: WARN

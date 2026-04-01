@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: monitor-test
+  security:
+    filter:
+      dispatcher-types: REQUEST,ERROR
 
   kafka:
     bootstrap-servers: localhost:9092
@@ -18,6 +21,11 @@ spring:
     port: 25
 
 monitor:
+  security:
+    username: testuser
+    password: testpass
+  cors:
+    allowed-origins: http://localhost:3000
   kafka:
     topic:
       log-traza: oracle.SYSTEM.LOG_TRAZA
