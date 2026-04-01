@@ -1,11 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <suppress>
-        <notes><![CDATA[
-            Suppressed to avoid "Failed to process CVE" errors in NVD during CI.
-            These are ancient CVEs (2016) often causing processing timeouts.
-        ]]></notes>
-        <cve>CVE-2016-1009</cve>
-        <cve>CVE-2016-2144</cve>
-    </suppress>
+    <!-- Add future suppressions here if they are real vulnerabilities we decide to ignore -->
 </suppressions>
