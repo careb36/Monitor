@@ -53,8 +53,8 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
-          # Allow GitFlow branch prefixes and additional automation/tooling prefixes
-          PATTERN='^(feature|bugfix|release|hotfix|fix|docs|chore|refactor|test|perf|ci|copilot)/.+'
+          # Allow GitFlow branch prefixes, automation prefixes, AND base branches (main/develop)
+          PATTERN='^((feature|bugfix|release|hotfix|fix|docs|chore|refactor|test|perf|ci|copilot)/.+|main|develop)$'
           if echo "$HEAD_REF" | grep -qE "$PATTERN"; then
             echo "Branch name is valid: $HEAD_REF"
           else
