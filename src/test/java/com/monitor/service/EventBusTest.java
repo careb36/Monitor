@@ -8,11 +8,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EventBusTest {
 
@@ -31,7 +32,7 @@ class EventBusTest {
 
     @Test
     void addEmitter_sendsInitialHeartbeat() {
-        List<Object> received = new ArrayList<>();
+        List<Object> received = new CopyOnWriteArrayList<>();
         SseEmitter emitter = new SseEmitter(5000L) {
             @Override
             public void send(SseEventBuilder builder) throws IOException {
@@ -41,12 +42,13 @@ class EventBusTest {
 
         eventBus.addEmitter(emitter);
 
-        assertEquals(1, received.size());
+        // This one is synchronous in addEmitter, but let's be safe
+        await().atMost(2, TimeUnit.SECONDS).until(() -> received.size() == 1);
     }
 
     @Test
     void sendHeartbeat_toRegisteredEmitter_sendsPeriodicHeartbeat() {
-        List<Object> received = new ArrayList<>();
+        List<Object> received = new CopyOnWriteArrayList<>();
         SseEmitter emitter = new SseEmitter(5000L) {
             @Override
             public void send(SseEventBuilder builder) throws IOException {
@@ -57,7 +59,8 @@ class EventBusTest {
         eventBus.addEmitter(emitter);
         eventBus.sendHeartbeat();
 
-        assertEquals(2, received.size());
+        // Wait for the async broadcast via Virtual Threads
+        await().atMost(2, TimeUnit.SECONDS).until(() -> received.size() == 2);
     }
 
     @Test
@@ -68,7 +71,7 @@ class EventBusTest {
 
     @Test
     void publish_toRegisteredEmitter_sendsEvent() {
-        List<Object> received = new ArrayList<>();
+        List<Object> received = new CopyOnWriteArrayList<>();
         SseEmitter emitter = new SseEmitter(5000L) {
             @Override
             public void send(SseEventBuilder builder) throws IOException {
@@ -80,7 +83,8 @@ class EventBusTest {
         UnifiedEvent event = new UnifiedEvent(EventType.DATA, Severity.CRITICAL, "src", "msg");
         eventBus.publish(event);
 
-        assertEquals(2, received.size());
+        // Wait for the async broadcast via Virtual Threads
+        await().atMost(2, TimeUnit.SECONDS).until(() -> received.size() == 2);
     }
 
     @Test
@@ -101,7 +105,11 @@ class EventBusTest {
         eventBus.addEmitter(emitter);
 
         assertDoesNotThrow(() -> eventBus.sendHeartbeat());
-        assertDoesNotThrow(() -> eventBus.publish(
-                new UnifiedEvent(EventType.DATA, Severity.INFO, "src", "msg")));
+        
+        // Wait a bit for the async removal to potentially happen
+        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> 
+            assertDoesNotThrow(() -> eventBus.publish(
+                new UnifiedEvent(EventType.DATA, Severity.INFO, "src", "msg")))
+        );
     }
 }
