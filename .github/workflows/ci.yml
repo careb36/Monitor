@@ -35,7 +35,7 @@ jobs:
             ${{ runner.os }}-owasp-db-
 
       - name: Build with Maven
-        run: mvn --batch-mode clean verify
+        run: mvn --batch-mode clean verify -DnvdApiKey=${{ secrets.NVD_API_KEY }}
 
       - name: Upload test results
         if: always()
