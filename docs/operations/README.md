@@ -22,6 +22,7 @@ It is intended for developers, operators, and support engineers who need repeata
 ### Index
 
 - `monitor-operations-runbook.md` - day-to-day operational procedures, smoke checks, and incident-oriented troubleshooting
+- `kafka-sasl-ssl-quickstart.md` - secure Kafka enablement (TLS/SASL) with bootstrap scripts
 
 ### Scope
 
@@ -42,7 +43,7 @@ The operations set covers:
 ### Resumen Ejecutivo
 
 Esta carpeta es el punto de entrada operativo para validar y diagnosticar `Monitor`.
-Esta pensada para responder rapidamente una pregunta: **¿la plataforma esta sana, observable y conectada de extremo a extremo?**
+Esta pensada para responder rapidamente una pregunta: **ï¿½la plataforma esta sana, observable y conectada de extremo a extremo?**
 
 ### Proposito
 
