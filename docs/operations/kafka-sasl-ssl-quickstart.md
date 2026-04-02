@@ -58,6 +58,12 @@ If preflight fails, fix missing env vars/files and rerun.
 - Backend starts with `KAFKA_SECURITY_PROTOCOL=SASL_SSL`
 - Debezium connect worker starts with SASL settings
 
+Run automated smoke check:
+
+```bash
+./scripts/kafka-secure-smoke.sh
+```
+
 ## 5) Rollback to plaintext
 
 ```bash
