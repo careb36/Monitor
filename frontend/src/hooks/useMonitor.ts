@@ -72,7 +72,7 @@ export function useMonitor() {
         };
         if (event.type === 'INFRASTRUCTURE') {
           const others = base.infrastructure.filter((e) => e.source !== event.source);
-          return { ...base, infrastructure: [event, ...others] };
+          return { ...base, infrastructure: [{ ...event, receivedAt: Date.now() }, ...others] };
         } else {
           const updated = [event, ...base.logs].slice(0, MAX_LOG_ENTRIES);
           return { ...base, logs: updated };
