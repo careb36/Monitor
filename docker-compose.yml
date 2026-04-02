@@ -13,7 +13,6 @@ services:
   oracle:
     image: gvenzl/oracle-xe:21-slim
     container_name: monitor-oracle
-
     restart: unless-stopped
     environment:
       ORACLE_PASSWORD: ${ORACLE_PASSWORD}
@@ -144,11 +143,11 @@ services:
     networks:
       - monitor-net
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 60s
+      retries: 5
+      start_period: 40s
 
   # ── Monitor Frontend (Next.js) ─────────────────────────────────────────────
   frontend:
