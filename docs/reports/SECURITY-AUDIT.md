@@ -1,8 +1,17 @@
 # INFORME DE AUDITORÍA DE SEGURIDAD – PROYECTO MONITOR
 
+> **⚠️ Estado del documento: ANÁLISIS PRE-IMPLEMENTACIÓN**
+>
+> Este informe fue redactado **antes** de que se implementaran las medidas de seguridad.
+> Los hallazgos describen vulnerabilidades que **existían** al momento de la auditoría.
+> Muchas ya fueron resueltas (Spring Security, credenciales externalizadas, etc.).
+> Para el estado **actual** de seguridad implementada, ver `SECURITY-CONFIG.md`.
+>
+> **Versiones reales:** Spring Boot 3.4.4, Java 21
+
 **Fecha:** 2026-03-31
 **Analista:** AppSec Senior Auditor
-**Alcance:** Monitoreo de operaciones en tiempo real – Spring Boot 4.x backend
+**Alcance:** Monitoreo de operaciones en tiempo real – Spring Boot backend
 **Metodología:** OWASP Top 10 (2021) / CWE/SANS Top 25 (2023) / CVSS v3.1
 
 ---
@@ -12,12 +21,12 @@
 | Categoría | Valor |
 |-----------|-------|
 | **Estructura de módulos** | Monolito único (single `pom.xml`, sin módulos hijos) |
-| **Spring Boot** | 4.0.5 (parent: `spring-boot-starter-parent`) |
-| **Spring Framework** | 7.x (implícito por Spring Boot 4.0.x) |
+| **Spring Boot** | 3.4.4 (parent: `spring-boot-starter-parent`) |
+| **Spring Framework** | 6.x (implícito por Spring Boot 3.4.x) |
 | **JDK objetivo** | Java 21 (`<java.version>21</java.version>`, pom.xml:25) |
 | **Motor de base de datos** | Oracle XE 11g (`gvenzl/oracle-xe:11`) |
 | **Perfil Spring activo** | Ninguno explícito (default profile) |
-| **Mensajería** | Apache Kafka via Confluent Platform 7.6.0 + Debezium 2.6 |
+| **Mensajería** | Apache Kafka via kafka-clients 4.2.0 + Debezium 3.5.0.Final |
 | **Serialización JSON** | Jackson (managed by Spring Boot) |
 | **Backend de persistencia** | Spring Data JPA (H2 embebido por defecto; Oracle vía Debezium CDC) |
 | **Ausencias críticas** | Sin Spring Security, sin Spring Boot Actuator, sin dependency-check, sin enforcer-plugin |

@@ -2,7 +2,7 @@
 
 **Architecture, Decisions, and Operations Hub / Hub de Arquitectura, Decisiones y Operaciones**
 
-[English](#english) | [Espanol](#espanol)
+[English](#english) | [EspaÃ±ol](#espaÃ±ol)
 
 ---
 
@@ -40,6 +40,7 @@ It is designed to serve three audiences:
 - `docs/adr/0000-adr-template.md`
 - `docs/adr/0001-use-sse-eventbus-fanout.md`
 - `docs/adr/0002-duplicate-critical-events-to-sse-and-email.md`
+- `docs/adr/0003-refactor-eventbus-virtual-threads-and-concurrenthashmap.md`
 
 #### Operations and Runbooks
 
@@ -92,13 +93,13 @@ Open any `.puml` file directly in your IDE plugin to render it.
 
 ---
 
-<a id="espanol"></a>
+<a id="espaÃ±ol"></a>
 ## Espanol
 
 ### Resumen Ejecutivo
 
 Este set documental es la biblioteca principal para entender, operar y evolucionar `Monitor`.
-Esta diseñado para tres audiencias:
+Esta diseï¿½ado para tres audiencias:
 
 - stakeholders ejecutivos y de arquitectura que necesitan vistas de alto nivel
 - ingenieros que necesitan diagramas y decisiones alineadas a la implementacion
@@ -126,6 +127,7 @@ Esta diseñado para tres audiencias:
 - `docs/adr/0000-adr-template.md`
 - `docs/adr/0001-use-sse-eventbus-fanout.md`
 - `docs/adr/0002-duplicate-critical-events-to-sse-and-email.md`
+- `docs/adr/0003-refactor-eventbus-virtual-threads-and-concurrenthashmap.md`
 
 #### Operaciones y Runbooks
 
