@@ -41,6 +41,10 @@ Critical events trigger both an instant visual alert in the dashboard (with an a
 
 ### Architecture
 
+#### Logical Event Flow Diagram
+
+The diagram below shows the **logical flow of events** through the system — how data moves from sources (Oracle, periodic health checks) through the event bus to the frontend. This is **not** an infrastructure/deployment diagram; see [docs/README.md](docs/README.md) for C4 architecture views and system context diagrams.
+
 ```
 Oracle DB
   │  (INSERT into log_traza)
@@ -270,8 +274,15 @@ All changes to `main` and `develop` go through Pull Requests with CI approval.
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — workflow, commit conventions, PR expectations
 - [AGENTS.md](AGENTS.md) — guardrails for AI coding agents
-- [docs/README.md](docs/README.md) — architecture diagrams, C4 views, ADRs, runbooks
+- [docs/README.md](docs/README.md) — **detailed architecture diagrams** (C4 views, sequence diagrams, system context), ADRs (architectural decisions), and operational runbooks
 - [CHANGELOG.md](CHANGELOG.md) — release history
+
+**Architecture Diagram Types:**
+- **Logical Flow** (this README, "Architecture" section) — shows how events move through services
+- **C4 System Context** — high-level actors and system boundaries
+- **C4 Container** — major components (Backend, Frontend, Kafka, Oracle)
+- **C4 Component** — Java services and event bus internals
+- **Sequence Diagrams** — SSE streaming and critical alert flows at runtime
 
 ### License
 
@@ -306,6 +317,10 @@ Los eventos críticos activan simultáneamente una alerta visual en el panel (co
 | 🐳 **Docker Compose listo** | Stack completo (Oracle XE, Zookeeper, Kafka, Debezium, backend, frontend) con healthchecks y orden de dependencias. |
 
 ### Arquitectura
+
+#### Diagrama de Flujo Lógico de Eventos
+
+El diagrama de abajo muestra el **flujo lógico de eventos** a través del sistema — cómo se mueven los datos desde las fuentes (Oracle, verificaciones de salud periódicas) a través del event bus hasta el frontend. Esto **no es** un diagrama de infraestructura/despliegue; ver [docs/README.md](docs/README.md) para vistas arquitectónicas C4 y diagramas de contexto del sistema.
 
 ```
 Oracle DB
@@ -536,8 +551,15 @@ Todos los cambios a `main` y `develop` pasan por Pull Requests con aprobación d
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — flujo de trabajo, convenciones de commits, expectativas de PR
 - [AGENTS.md](AGENTS.md) — guardrails para agentes de IA
-- [docs/README.md](docs/README.md) — diagramas de arquitectura, vistas C4, ADRs, runbooks
+- [docs/README.md](docs/README.md) — **diagramas detallados de arquitectura** (vistas C4, diagramas de secuencia, contexto del sistema), ADRs (decisiones arquitectónicas) y runbooks operacionales
 - [CHANGELOG.md](CHANGELOG.md) — historial de cambios
+
+**Tipos de diagramas de arquitectura:**
+- **Flujo Lógico** (este README, sección "Arquitectura") — muestra cómo se mueven los eventos a través de servicios
+- **C4 System Context** — actores de alto nivel y límites del sistema
+- **C4 Container** — componentes principales (Backend, Frontend, Kafka, Oracle)
+- **C4 Component** — servicios Java e internals del event bus
+- **Sequence Diagrams** — flujos de SSE y alertas críticas en tiempo de ejecución
 
 ### Licencia
 
