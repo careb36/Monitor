@@ -13,6 +13,16 @@ Use it as a guardrail document before changing runtime behavior, tests, SSE cont
 - MUST run the frontend locally with `cd frontend && npm install && npm run dev`.
 - MUST preserve the local API rewrite in `frontend/next.config.js` (`/api/* -> http://localhost:8080/api/*`).
 
+### Cross-Validation Protocol
+
+Multiple AI agents (Gemini CLI, GitHub Copilot) work on this codebase simultaneously. Follow these rules:
+
+- **Before editing a file:** always re-read it — the other agent may have modified it.
+- **After the other agent finishes a batch of changes:** run `mvn --batch-mode clean compile test-compile` to validate integration.
+- **Shared files that require extra caution:** `pom.xml`, `application.yml`, `SecurityConfig.java`, `docker-compose.yml`.
+- **Conflict resolution:** if both agents produce conflicting edits, Caro decides which version to keep.
+- **No blind trust:** never accept another agent's claim (e.g., "file is truncated", "class doesn't exist") without verifying in the actual codebase.
+
 ### Core Architecture
 
 - `src/main/java/com/monitor/service/EventBus.java` is the high-performance SSE fan-out hub using **Java 21 Virtual Threads**.
@@ -79,6 +89,16 @@ Este archivo ofrece a los agentes de IA un modelo operativo breve y alineado con
 - MUST ejecutar validaciones de backend con `mvn --batch-mode clean verify`.
 - MUST ejecutar el frontend localmente con `cd frontend && npm install && npm run dev`.
 - MUST preservar el rewrite local de API en `frontend/next.config.js` (`/api/* -> http://localhost:8080/api/*`).
+
+### Protocolo de Validación Cruzada
+
+Múltiples agentes de IA (Gemini CLI, GitHub Copilot) trabajan en este codebase simultáneamente. Seguir estas reglas:
+
+- **Antes de editar un archivo:** siempre releerlo — el otro agente puede haberlo modificado.
+- **Después de que el otro agente termina un lote de cambios:** ejecutar `mvn --batch-mode clean compile test-compile` para validar integración.
+- **Archivos compartidos que requieren precaución extra:** `pom.xml`, `application.yml`, `SecurityConfig.java`, `docker-compose.yml`.
+- **Resolución de conflictos:** si ambos agentes producen ediciones conflictivas, Caro decide qué versión mantener.
+- **No confiar ciegamente:** nunca aceptar afirmaciones del otro agente (e.g., "el archivo está truncado", "la clase no existe") sin verificar en el codebase real.
 
 ### Arquitectura Central
 

@@ -28,9 +28,18 @@ Monitor is a real-time operations monitoring dashboard for high-stakes environme
 ## 🔄 Agent Communication Pipeline (Workflow)
 
 To maintain architectural integrity, follow this delegation flow:
-1. **The Architect (Gemini):** Analyzes specs and generates a `WORK_ORDER.md` with atomic tasks.
-2. **The Developer (Copilot CLI):** Reads the `WORK_ORDER.md` and executes one task at a time.
+1. **The Architect (Gemini CLI):** Analyzes specs, generates `WORK_ORDER.md` with atomic tasks, and works on security findings / dependency upgrades.
+2. **The Developer (GitHub Copilot):** Reads the `WORK_ORDER.md` and executes tasks. Also handles documentation, Docker infrastructure, and CI/CD.
 3. **The Reviewer (Caro):** Supervises the logic. No task is "Done" until it passes the Memory and Security checks defined above.
+
+### Cross-Validation Protocol
+
+When both agents work on the same codebase simultaneously:
+- **Before editing a file:** always re-read it — the other agent may have modified it.
+- **After the other agent finishes a batch of changes:** run `mvn --batch-mode clean compile test-compile` to validate integration.
+- **Shared files that require extra caution:** `pom.xml`, `application.yml`, `SecurityConfig.java`, `docker-compose.yml`.
+- **Conflict resolution:** if both agents produce conflicting edits, Caro decides which version to keep.
+- **No blind trust:** never accept another agent's claim (e.g., "file is truncated", "class doesn't exist") without verifying in the actual codebase.
 
 ---
 

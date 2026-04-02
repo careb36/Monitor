@@ -9,12 +9,14 @@ actor "Browser User" as User
 component "Dashboard UI\nNext.js / React" as Frontend
 component "Monitor Hook\nEventSource client" as UseMonitor
 
-package "Spring Boot Backend\nJava 21 / Spring Boot 4" {
+package "Spring Boot Backend\nJava 21 / Spring Boot 3.4.4" {
   component "SseController\nGET /api/events/stream" as SseController
   component "EventBus\nSSE fan-out + heartbeat" as EventBus
   component "KafkaConsumerService\nCDC consumer" as KafkaConsumer
   component "PollingService\nHealth checks" as Polling
   component "EmailService\n@Async CRITICAL alerts" as EmailService
+  component "SecurityConfig\nHTTP Basic + HSTS + CSP" as Security
+  component "RateLimitingFilter\nBucket4j per-IP" as RateLimit
 }
 
 database "Oracle XE\nLOG_TRAZA" as Oracle
@@ -37,6 +39,9 @@ KafkaConsumer --> EmailService : sendCriticalAlert()\nif severity == CRITICAL
 Polling --> EventBus : publish(INFRASTRUCTURE)
 Polling --> EmailService : sendCriticalAlert()\nif target is DOWN
 EmailService --> Smtp : Plain-text email
+
+Security --> SseController : HTTP Basic auth
+RateLimit --> SseController : rate-limits /api/**
 
 note right of EventBus
 Backend SSE contract:

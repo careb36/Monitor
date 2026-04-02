@@ -4,11 +4,31 @@ hide empty members
 skinparam linetype ortho
 
 title Monitor — Backend Class Diagram
-caption Core backend classes, configuration properties, and event model
+caption Core backend classes, configuration, security, persistence, and event model
 
 package "com.monitor" {
   class App {
     +main(args: String[]): void
+  }
+}
+
+package "com.monitor.collector" {
+  interface EventCollector {
+    +name(): String
+    +mode(): CollectionMode
+  }
+
+  interface PushCollector extends EventCollector {
+    +onEvent(payload: String): void
+  }
+
+  interface PullCollector extends EventCollector {
+    +scrape(): void
+  }
+
+  enum CollectionMode {
+    PULL
+    PUSH
   }
 }
 
@@ -22,7 +42,8 @@ package "com.monitor.controller" {
 
 package "com.monitor.service" {
   class EventBus {
-    -emitters: List<SseEmitter>
+    -emitters: Set<SseEmitter>
+    -executor: ExecutorService
     +addEmitter(emitter: SseEmitter): void
     +publish(event: UnifiedEvent): void
     ~sendHeartbeat(): void
@@ -30,7 +51,7 @@ package "com.monitor.service" {
     -sendToEmitter(emitter, eventBuilder, operation): boolean
   }
 
-  class KafkaConsumerService {
+  class KafkaConsumerService implements PushCollector {
     -objectMapper: ObjectMapper
     -eventBus: EventBus
     -emailService: EmailService
@@ -38,7 +59,7 @@ package "com.monitor.service" {
     -parseSeverity(raw: String): Severity
   }
 
-  class PollingService {
+  class PollingService implements PullCollector {
     -eventBus: EventBus
     -emailService: EmailService
     -targetsProperties: MonitorPollingTargetsProperties
@@ -56,7 +77,34 @@ package "com.monitor.service" {
   }
 }
 
+package "com.monitor.service.persistence" {
+  class CriticalOutboxEntity {
+    -id: Long
+    -type: EventType
+    -severity: Severity
+    -source: String
+    -message: String
+    -delivered: boolean
+    -nextAttemptAt: Instant
+  }
+
+  interface CriticalOutboxRepository {
+    +findDue(now: Instant, limit: Pageable): List<CriticalOutboxEntity>
+  }
+}
+
 package "com.monitor.config" {
+  class SecurityConfig {
+    +passwordEncoder(): PasswordEncoder
+    +devFilterChain(http): SecurityFilterChain
+    +prodFilterChain(http): SecurityFilterChain
+    +userDetailsService(encoder): UserDetailsService
+  }
+
+  class CorsConfig {
+    +corsConfigurer(): WebMvcConfigurer
+  }
+
   class JacksonConfig {
     +objectMapper(): ObjectMapper
   }
@@ -70,6 +118,17 @@ package "com.monitor.config" {
   class MonitorPollingTargetsProperties {
     -databases: List<String>
     -daemons: List<String>
+  }
+}
+
+package "com.monitor.security" {
+  class RateLimitingFilter {
+    -buckets: Map<String, Bucket>
+    +doFilter(req, res, chain): void
+  }
+
+  class SecurityAuditAspect {
+    +auditEndpointAccess(joinPoint): Object
   }
 }
 
@@ -104,17 +163,31 @@ PollingService --> EventBus : publish()
 KafkaConsumerService --> EmailService : sendCriticalAlert()
 PollingService --> EmailService : sendCriticalAlert()
 EmailService --> MonitorMailProperties
+EmailService ..> CriticalOutboxRepository : persist before send
 PollingService --> MonitorPollingTargetsProperties
 KafkaConsumerService --> UnifiedEvent
 PollingService --> UnifiedEvent
 EventBus --> UnifiedEvent
 JacksonConfig ..> KafkaConsumerService : provides ObjectMapper
 
+SecurityConfig ..> SseController : secures endpoints
+CorsConfig ..> SseController : CORS policy
+RateLimitingFilter ..> SseController : rate-limits per IP
+SecurityAuditAspect ..> SseController : audit logging
+
+CriticalOutboxEntity --> EventType
+CriticalOutboxEntity --> Severity
 UnifiedEvent --> EventType
 UnifiedEvent --> Severity
 
+EventCollector --> CollectionMode
+
 note right of EventBus
 Central in-memory SSE fan-out.
+Uses ConcurrentHashMap.newKeySet()
+and Virtual Thread executor for
+O(1) registration and non-blocking
+broadcast to 10k+ clients.
 Also sends:
 - initial :connected comment
 - periodic :heartbeat comment
@@ -123,6 +196,19 @@ end note
 note right of PollingService
 Only emits INFO on recovery/state changes,
 and CRITICAL when a target is DOWN.
+end note
+
+note right of SecurityConfig
+Profile-aware:
+- dev: any authenticated user
+- staging/prod: role-based (RBAC)
+BCrypt(12) + HSTS + CSP headers
+end note
+
+note right of CriticalOutboxEntity
+Outbox pattern: every CRITICAL event
+is persisted before SSE/email delivery.
+Bounded to 500 entries max.
 end note
 @enduml
 
