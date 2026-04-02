@@ -19,7 +19,7 @@ services:
       MONITOR_APP_USER: ${MONITOR_APP_USER:-monitor_app}
       MONITOR_APP_PASS: ${MONITOR_APP_PASSWORD}
     ports:
-      - "${ORACLE_PORT:-1521}:1521"
+      - "${ORACLE_BIND_HOST:-127.0.0.1}:${ORACLE_PORT:-1521}:1521"
     volumes:
       - oracle-data:/opt/oracle/oradata
       - ./docker/oracle/init.sql:/container-entrypoint-initdb.d/01-init.sql:ro
@@ -50,7 +50,7 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "${KAFKA_PORT:-9092}:9092"
+      - "${KAFKA_BIND_HOST:-127.0.0.1}:${KAFKA_PORT:-9092}:9092"
     networks:
       - monitor-net
     environment:
@@ -90,7 +90,7 @@ services:
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
     ports:
-      - "${CONNECT_PORT:-8083}:8083"
+      - "${CONNECT_BIND_HOST:-127.0.0.1}:${CONNECT_PORT:-8083}:8083"
     networks:
       - monitor-net
     healthcheck:
@@ -106,8 +106,8 @@ services:
     container_name: monitor-mailhog
     restart: unless-stopped
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - "${MAILHOG_BIND_HOST:-127.0.0.1}:${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_BIND_HOST:-127.0.0.1}:${MAILHOG_UI_PORT:-8025}:8025"
     networks:
       - monitor-net
 
@@ -119,7 +119,7 @@ services:
     container_name: monitor-backend
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${BACKEND_BIND_HOST:-127.0.0.1}:${BACKEND_PORT:-8080}:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
@@ -157,7 +157,7 @@ services:
     container_name: monitor-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FRONTEND_BIND_HOST:-127.0.0.1}:${FRONTEND_PORT:-3000}:3000"
     depends_on:
       backend:
         condition: service_healthy
