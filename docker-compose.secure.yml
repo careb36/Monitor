@@ -1,0 +1,51 @@
+services:
+  kafka:
+    ports:
+      - "${KAFKA_BIND_HOST:-127.0.0.1}:${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - ./docker/kafka/secrets:/etc/kafka/secrets:ro
+    environment:
+      KAFKA_LISTENERS: SASL_SSL://0.0.0.0:29092,SASL_SSL_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: SASL_SSL://kafka:29092,SASL_SSL_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SASL_SSL:SASL_SSL,SASL_SSL_HOST:SASL_SSL
+      KAFKA_INTER_BROKER_LISTENER_NAME: SASL_SSL
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: SCRAM-SHA-512
+      KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_SSL_KEYSTORE_FILENAME: ${KAFKA_SSL_KEYSTORE_FILENAME:-kafka.keystore.jks}
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: ${KAFKA_SSL_KEYSTORE_CREDENTIALS:-kafka_keystore_creds}
+      KAFKA_SSL_KEY_CREDENTIALS: ${KAFKA_SSL_KEY_CREDENTIALS:-kafka_sslkey_creds}
+      KAFKA_SSL_TRUSTSTORE_FILENAME: ${KAFKA_SSL_TRUSTSTORE_FILENAME:-kafka.truststore.jks}
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: ${KAFKA_SSL_TRUSTSTORE_CREDENTIALS:-kafka_truststore_creds}
+
+  kafka-connect:
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_SASL_MECHANISM: SCRAM-SHA-512
+      CONNECT_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_CONNECT_USERNAME}" password="${KAFKA_CONNECT_PASSWORD}";
+      CONNECT_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/connect.truststore.jks
+      CONNECT_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_CONNECT_TRUSTSTORE_PASSWORD}
+      CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_PRODUCER_SASL_MECHANISM: SCRAM-SHA-512
+      CONNECT_PRODUCER_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_CONNECT_USERNAME}" password="${KAFKA_CONNECT_PASSWORD}";
+      CONNECT_PRODUCER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/connect.truststore.jks
+      CONNECT_PRODUCER_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_CONNECT_TRUSTSTORE_PASSWORD}
+      CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
+      CONNECT_CONSUMER_SASL_MECHANISM: SCRAM-SHA-512
+      CONNECT_CONSUMER_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_CONNECT_USERNAME}" password="${KAFKA_CONNECT_PASSWORD}";
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/connect.truststore.jks
+      CONNECT_CONSUMER_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_CONNECT_TRUSTSTORE_PASSWORD}
+    volumes:
+      - ./docker/kafka/secrets:/etc/kafka/secrets:ro
+
+  backend:
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_SECURITY_PROTOCOL: SASL_SSL
+      KAFKA_SASL_MECHANISM: SCRAM-SHA-512
+      KAFKA_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_BACKEND_USERNAME}" password="${KAFKA_BACKEND_PASSWORD}";
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/backend.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_BACKEND_TRUSTSTORE_PASSWORD}
+    volumes:
+      - ./docker/kafka/secrets:/etc/kafka/secrets:ro
