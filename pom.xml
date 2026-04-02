@@ -66,6 +66,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
+            <!-- Security (CWE-306: Missing Authentication for Critical Function) -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-security</artifactId>
+            </dependency>
         </dependency>
 
         <!-- JPA / Outbox persistence -->
