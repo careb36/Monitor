@@ -7,6 +7,7 @@ import com.monitor.model.UnifiedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -15,16 +16,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class ReliableEventPipelineServiceTest {
 
     private EventDeduplicator deduplicator;
     private InMemoryCriticalOutbox outbox;
+    private CriticalReplayService replayService;
 
     @BeforeEach
     void setUp() {
         deduplicator = new EventDeduplicator(60000);
         outbox = new InMemoryCriticalOutbox(100);
+        replayService = new CriticalReplayService(outbox, mock(EventBus.class), 50, Duration.ofMinutes(5));
     }
 
     @Test
@@ -34,7 +38,7 @@ class ReliableEventPipelineServiceTest {
         EventNotifier email = new TestNotifier("email", List.of(), true);
 
         ReliableEventPipelineService pipeline = new ReliableEventPipelineService(
-                deduplicator, outbox, sse, email, 10, 1000, 5, 20);
+                deduplicator, outbox, replayService, sse, email, 10, 1000, 5, 20);
 
         UnifiedEvent info = new UnifiedEvent(EventType.INFRASTRUCTURE, Severity.INFO, "db-1", "UP");
         pipeline.ingest(info, IngestMetadata.live("polling:db-1"));
@@ -63,7 +67,7 @@ class ReliableEventPipelineServiceTest {
         };
 
         ReliableEventPipelineService pipeline = new ReliableEventPipelineService(
-                deduplicator, outbox, sse, email, 10, 1, 5, 20);
+                deduplicator, outbox, replayService, sse, email, 10, 1, 5, 20);
 
         UnifiedEvent critical = new UnifiedEvent(EventType.DATA, Severity.CRITICAL, "kafka:err", "fatal");
         pipeline.ingest(critical, IngestMetadata.live("kafka:topic"));
@@ -91,7 +95,7 @@ class ReliableEventPipelineServiceTest {
 
         // Limit to 3 retries
         ReliableEventPipelineService pipeline = new ReliableEventPipelineService(
-                deduplicator, outbox, sse, email, 10, 1, 3, 20);
+                deduplicator, outbox, replayService, sse, email, 10, 1, 3, 20);
 
         UnifiedEvent critical = new UnifiedEvent(EventType.DATA, Severity.CRITICAL, "exhaust-test", "fail");
         pipeline.ingest(critical, IngestMetadata.live("test"));

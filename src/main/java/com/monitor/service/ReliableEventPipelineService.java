@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -47,6 +46,7 @@ public class ReliableEventPipelineService implements IngestionFacade {
 
     private final EventDeduplicator deduplicator;
     private final CriticalOutbox criticalOutbox;
+    private final CriticalReplayService replayService;
     private final EventNotifier sseNotifier;
     private final EventNotifier emailNotifier;
 
@@ -76,6 +76,7 @@ public class ReliableEventPipelineService implements IngestionFacade {
      */
     public ReliableEventPipelineService(EventDeduplicator deduplicator,
                                         CriticalOutbox criticalOutbox,
+                                        CriticalReplayService replayService,
                                         @Qualifier("sseEventNotifier") EventNotifier sseNotifier,
                                         @Qualifier("emailEventNotifier") EventNotifier emailNotifier,
                                         @Value("${monitor.pipeline.standard-queue-capacity:1000}") int standardQueueCapacity,
@@ -84,6 +85,7 @@ public class ReliableEventPipelineService implements IngestionFacade {
                                         @Value("${monitor.pipeline.drain-batch-size:100}") int drainBatchSize) {
         this.deduplicator = deduplicator;
         this.criticalOutbox = criticalOutbox;
+        this.replayService = replayService;
         this.sseNotifier = sseNotifier;
         this.emailNotifier = emailNotifier;
         this.standardQueue = new LinkedBlockingQueue<>(standardQueueCapacity);
@@ -115,7 +117,18 @@ public class ReliableEventPipelineService implements IngestionFacade {
 
         if (event.getSeverity() == Severity.CRITICAL) {
             long outboxId = criticalOutbox.save(event);
-            criticalQueue.offer(outboxId);
+            try {
+                criticalOutbox.markProcessing(outboxId);
+                if (criticalQueue.offer(outboxId)) {
+                    log.debug("Critical event {} marked as processing and queued", outboxId);
+                } else {
+                    log.warn("Critical queue full; entry {} remains PENDING and will be picked up by replay poller", outboxId);
+                    // Reset to PENDING if we couldn't queue it
+                    criticalOutbox.markRetry(outboxId, Instant.now(), "queue-full-on-ingest");
+                }
+            } catch (Exception ex) {
+                log.warn("Conflict or failure marking {} as processing during ingest; will retry via poller", outboxId);
+            }
             return;
         }
 
@@ -168,10 +181,7 @@ public class ReliableEventPipelineService implements IngestionFacade {
      */
     @Scheduled(fixedDelayString = "${monitor.pipeline.replay-interval-ms:3000}")
     void replayCriticalDue() {
-        List<OutboxEntry> dueEntries = criticalOutbox.findDue(Instant.now(), drainBatchSize);
-        for (OutboxEntry entry : dueEntries) {
-            criticalQueue.offer(entry.id());
-        }
+        replayService.pollAndLockDueEntries(criticalQueue, drainBatchSize);
     }
 
     /**

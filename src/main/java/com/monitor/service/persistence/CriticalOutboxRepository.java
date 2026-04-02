@@ -30,7 +30,7 @@ public interface CriticalOutboxRepository extends JpaRepository<CriticalOutboxEn
      */
     @Query("""
             select e from CriticalOutboxEntity e
-            where e.delivered = false and e.nextAttemptAt <= :now
+            where e.status = 'PENDING' and e.nextAttemptAt <= :now
             order by e.nextAttemptAt asc
             """)
     List<CriticalOutboxEntity> findDue(@Param("now") Instant now, Pageable pageable);
@@ -44,6 +44,12 @@ public interface CriticalOutboxRepository extends JpaRepository<CriticalOutboxEn
      * @param pageable pagination descriptor; use {@code PageRequest.of(0, limit)} to bound results
      * @return ordered list of subsequent entities; never {@code null}
      */
+    @Query("""
+            select e from CriticalOutboxEntity e
+            where e.status = 'PROCESSING' and e.lastStatusChangeAt <= :olderThan
+            """)
+    List<CriticalOutboxEntity> findTimedOutProcessing(@Param("olderThan") Instant olderThan);
+
     @Query("""
             select e from CriticalOutboxEntity e
             where e.id > :lastId

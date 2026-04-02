@@ -1,12 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { UnifiedEvent } from '@/lib/types';
 
 const OFFLINE_THRESHOLD_MS = 60000; // 60 seconds
 
-function formatTimeSince(receivedAt: number | undefined): string {
+function formatTimeSince(receivedAt: number | undefined, now: number): string {
   if (!receivedAt) return 'Never';
-  const elapsed = Date.now() - receivedAt;
+  const elapsed = now - receivedAt;
   const seconds = Math.floor(elapsed / 1000);
   if (seconds < 60) {
     return `${seconds}s ago`;
@@ -19,11 +20,20 @@ function formatTimeSince(receivedAt: number | undefined): string {
   return `${hours}h ago`;
 }
 
-function isOffline(receivedAt: number | undefined): boolean {
+function isOffline(receivedAt: number | undefined, now: number): boolean {
   if (!receivedAt) return true;
-  return Date.now() - receivedAt > OFFLINE_THRESHOLD_MS;
+  return now - receivedAt > OFFLINE_THRESHOLD_MS;
 }
+
 export function InfraPanel({ infrastructure }: { infrastructure: UnifiedEvent[] }) {
+  // Local state to force re-render every few seconds for relative time updates
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <section className="w-80 border-l border-border-subtle bg-[#111] flex flex-col h-full shrink-0">
       <div className="py-3 px-4 border-b border-border-subtle shrink-0">
@@ -38,16 +48,16 @@ export function InfraPanel({ infrastructure }: { infrastructure: UnifiedEvent[] 
             Awaiting infra telemetry...
           </p>
         ) : (
-          infrastructure.map((event) => <InfraCard key={event.source} event={event} />)
+          infrastructure.map((event) => <InfraCard key={event.source} event={event} now={now} />)
         )}
       </div>
     </section>
   );
 }
 
-function InfraCard({ event }: { event: UnifiedEvent }) {
-  const offline = isOffline(event.receivedAt);
-  const timeSince = formatTimeSince(event.receivedAt);
+function InfraCard({ event, now }: { event: UnifiedEvent; now: number }) {
+  const offline = isOffline(event.receivedAt, now);
+  const timeSince = formatTimeSince(event.receivedAt, now);
 
   const getBadgeClass = (severity: string) => {
     // Si está offline, mostrar badge gris

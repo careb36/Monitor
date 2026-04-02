@@ -1,7 +1,11 @@
 package com.monitor.service.persistence;
 
+import java.time.Instant;
+
 import com.monitor.model.EventType;
+import com.monitor.model.OutboxStatus;
 import com.monitor.model.Severity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -13,8 +17,6 @@ import jakarta.persistence.Index;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-
-import java.time.Instant;
 
 /**
  * JPA entity that persists a critical-event outbox entry in the {@code CRITICAL_OUTBOX} table.
@@ -81,6 +83,13 @@ public class CriticalOutboxEntity {
 
     @Column(name = "LAST_ERROR", length = 1000)
     private String lastError;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "STATUS", nullable = false, length = 32)
+    private OutboxStatus status;
+
+    @Column(name = "LAST_STATUS_CHANGE_AT", nullable = false)
+    private Instant lastStatusChangeAt;
 
     @Version
     @Column(name = "ROW_VERSION", nullable = false)
@@ -172,6 +181,22 @@ public class CriticalOutboxEntity {
 
     public void setLastError(String lastError) {
         this.lastError = lastError;
+    }
+
+    public OutboxStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OutboxStatus status) {
+        this.status = status;
+    }
+
+    public Instant getLastStatusChangeAt() {
+        return lastStatusChangeAt;
+    }
+
+    public void setLastStatusChangeAt(Instant lastStatusChangeAt) {
+        this.lastStatusChangeAt = lastStatusChangeAt;
     }
 
     public long getRowVersion() {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { MonitorState } from '@/lib/types';
 
 interface SidebarProps {
@@ -10,10 +11,17 @@ export function Sidebar({ state }: SidebarProps) {
   const infraCount = state.infrastructure.length;
   const logCount = state.logs.length;
   
-  const critCount = state.logs.filter((l) => l.severity === 'CRITICAL').length 
-                  + state.infrastructure.filter((i) => i.severity === 'CRITICAL').length;
-  const warnCount = state.logs.filter((l) => l.severity === 'WARNING').length 
-                  + state.infrastructure.filter((i) => i.severity === 'WARNING').length;
+  const critCount = useMemo(() => 
+    state.logs.filter((l) => l.severity === 'CRITICAL').length 
+    + state.infrastructure.filter((i) => i.severity === 'CRITICAL').length,
+    [state.logs, state.infrastructure]
+  );
+
+  const warnCount = useMemo(() => 
+    state.logs.filter((l) => l.severity === 'WARNING').length 
+    + state.infrastructure.filter((i) => i.severity === 'WARNING').length,
+    [state.logs, state.infrastructure]
+  );
 
   return (
     <aside className="w-64 bg-bg-panel border-r border-border-subtle flex flex-col p-4 gap-6 shrink-0 h-full overflow-y-auto">

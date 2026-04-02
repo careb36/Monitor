@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { UnifiedEvent } from '@/lib/types';
 
 export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
@@ -11,23 +11,26 @@ export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
   const [clearCutoffMs, setClearCutoffMs] = useState<number | null>(null);
 
   // Hide all entries up to the moment the operator pressed CLEAR.
-  const visibleLogs = clearCutoffMs
-    ? logs.filter((event) => Date.parse(event.timestamp) > clearCutoffMs)
-    : logs;
+  const visibleLogs = useMemo(() => {
+    if (!clearCutoffMs) return logs;
+    return logs.filter((event) => Date.parse(event.timestamp) > clearCutoffMs);
+  }, [logs, clearCutoffMs]);
 
   // Freeze list when paused so incoming events do not update current view.
   const displayLogs = paused ? pausedSnapshot ?? visibleLogs : visibleLogs;
 
-  const filteredLogs = displayLogs
-    .filter((l) => (severityFilter ? l.severity === severityFilter : true))
-    .filter((l) => {
-      if (!textSearch.trim()) return true;
-      const searchLower = textSearch.toLowerCase();
-      return (
-        l.message.toLowerCase().includes(searchLower) ||
-        l.source.toLowerCase().includes(searchLower)
-      );
-    });
+  const filteredLogs = useMemo(() => {
+    return displayLogs
+      .filter((l) => (severityFilter ? l.severity === severityFilter : true))
+      .filter((l) => {
+        if (!textSearch.trim()) return true;
+        const searchLower = textSearch.toLowerCase();
+        return (
+          l.message.toLowerCase().includes(searchLower) ||
+          l.source.toLowerCase().includes(searchLower)
+        );
+      });
+  }, [displayLogs, severityFilter, textSearch]);
 
   const handleClear = () => {
     setClearCutoffMs(Date.now());
@@ -50,16 +53,18 @@ export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
   const bufferedCount = paused ? Math.max(visibleLogs.length - (pausedSnapshot?.length ?? 0), 0) : 0;
 
   return (
-    <section className="flex flex-col h-full bg-bg-base flex-1 overflow-hidden">
+    <section className="flex flex-col h-full bg-bg-base flex-1 overflow-hidden" aria-labelledby="log-viewer-title">
       {/* Header with filters + pause/search/clear */}
       <div className="flex flex-col gap-3 py-3 px-6 border-b border-border-subtle bg-bg-panel shrink-0">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold tracking-[0.15em] text-text-muted uppercase">
+          <h2 id="log-viewer-title" className="text-xs font-bold tracking-[0.15em] text-text-muted uppercase">
             Live Event Stream
           </h2>
           <div className="flex gap-2">
             <button
               onClick={handleTogglePaused}
+              aria-label={paused ? 'Resume live stream' : 'Pause live stream'}
+              aria-pressed={paused}
               className={`px-3 py-1 rounded text-xs font-bold tracking-wider border transition-colors ${
                 paused
                   ? 'bg-status-warn text-black border-status-warn'
@@ -70,6 +75,7 @@ export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
             </button>
             <button
               onClick={handleClear}
+              aria-label="Clear all current logs"
               className="px-3 py-1 rounded text-xs font-bold tracking-wider border border-border-subtle text-text-muted hover:text-white hover:bg-border-subtle transition-colors"
             >
               CLEAR

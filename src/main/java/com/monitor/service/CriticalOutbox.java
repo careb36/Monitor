@@ -9,7 +9,7 @@ import java.util.Optional;
 /**
  * Persistence contract for critical-event outbox entries.
  *
- * <p>The Outbox Pattern guarantees at-least-once delivery for {@link Severity#CRITICAL}
+ * <p>The Outbox Pattern guarantees at-least-once delivery for {@link com.monitor.model.Severity#CRITICAL}
  * events: every critical event is persisted here <em>before</em> any delivery attempt.
  * The pipeline re-reads undelivered entries on a fixed schedule until delivery succeeds
  * or the retry limit is reached.</p>
@@ -52,6 +52,18 @@ public interface CriticalOutbox {
     void markDelivered(long id);
 
     /**
+     * Locks the entry for processing by the current instance.
+     *
+     * <p>In distributed environments, this prevents multiple instances from
+     * attempting to deliver the same critical event simultaneously.</p>
+     *
+     * @param id the entry identifier
+     * @throws org.springframework.orm.ObjectOptimisticLockingFailureException if the entry
+     *         is already being processed or has been updated by another transaction.
+     */
+    void markProcessing(long id);
+
+    /**
      * Schedules a retry for a failed delivery attempt.
      *
      * <p>Increments the attempt counter, records the failure reason, and sets
@@ -63,6 +75,16 @@ public interface CriticalOutbox {
      *                       (e.g. {@code "email-delivery-failed"})
      */
     void markRetry(long id, Instant nextAttemptAt, String reason);
+
+    /**
+     * Resets entries that have been in {@code PROCESSING} state for too long.
+     *
+     * <p>This handles cases where an instance crashed or stalled while holding
+     * a lock on an entry, allowing other instances to pick it up eventually.</p>
+     *
+     * @param olderThan the threshold instant for timeout recovery
+     */
+    void resetProcessingToPending(Instant olderThan);
 
     /**
      * Returns undelivered entries whose {@code nextAttemptAt} is on or before {@code now}.
