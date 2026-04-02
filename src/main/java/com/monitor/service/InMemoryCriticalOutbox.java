@@ -77,7 +77,7 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
         pendingIds.add(id);
 
         log.info("CRITICAL EVENT SAVED: id={} type={} source={} message={}",
-                id, event.getType(), event.getSource(), event.getMessage());
+                id, event.getType(), event.getSeverity(), event.getSource(), event.getMessage());
         
         return id;
     }
@@ -131,6 +131,13 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
 
     /** {@inheritDoc} */
     @Override
+    public void markProcessing(long id) {
+        // In-memory implementation is single-node, so explicit processing lock
+        // is not strictly required for race prevention, but we implement for interface compliance.
+        log.debug("Marking entry {} as processing (in-memory)", id);
+    }
+
+    @Override
     public void markRetry(long id, Instant nextAttemptAt, String reason) {
         OutboxEntry current = entries.get(id);
         if (current == null) {
@@ -156,6 +163,12 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
     }
 
     /** {@inheritDoc} */
+    @Override
+    public void resetProcessingToPending(Instant olderThan) {
+        // In-memory doesn't track processing state in this implementation yet.
+        log.trace("Resetting processing to pending (in-memory) - no-op");
+    }
+
     @Override
     public List<OutboxEntry> findDue(Instant now, int limit) {
         return pendingIds.stream()
