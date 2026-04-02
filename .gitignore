@@ -32,6 +32,7 @@ buildNumber.properties
 
 # Logs / Crash
 *.log
+*.pid
 hs_err_pid*
 replay_pid*
 

@@ -1,10 +1,3 @@
-version: "3.9"
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Real-Time Operations Monitoring Dashboard – Infrastructure
-# Services: Oracle XE 11g | Zookeeper | Kafka | Kafka Connect (Debezium)
-# ─────────────────────────────────────────────────────────────────────────────
-
 networks:
   monitor-net:
     driver: bridge
@@ -22,9 +15,9 @@ services:
     container_name: monitor-oracle
     restart: unless-stopped
     environment:
-      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?FATAL: Set ORACLE_PASSWORD env var}
-      MONITOR_APP_USER: ${MONITOR_APP_USER:monitor_app}
-      MONITOR_APP_PASS: ${MONITOR_APP_PASSWORD:?FATAL: Set MONITOR_APP_PASSWORD env var}
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      MONITOR_APP_USER: ${MONITOR_APP_USER:-monitor_app}
+      MONITOR_APP_PASS: ${MONITOR_APP_PASSWORD}
     ports:
       - "${ORACLE_PORT:-1521}:1521"
     volumes:
@@ -40,7 +33,7 @@ services:
 
   # ── Zookeeper ─────────────────────────────────────────────────────────────
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
+    image: confluentinc/cp-zookeeper:7.6.1
     container_name: monitor-zookeeper
     restart: unless-stopped
     environment:
@@ -48,33 +41,27 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - monitor-net
-    healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
 
   # ── Kafka ─────────────────────────────────────────────────────────────────
   kafka:
-    image: confluentinc/cp-kafka:7.6.0
+    image: confluentinc/cp-kafka:7.6.1
     container_name: monitor-kafka
     restart: unless-stopped
     depends_on:
       - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_LOG_RETENTION_HOURS: 168
     ports:
       - "${KAFKA_PORT:-9092}:9092"
     networks:
       - monitor-net
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
     healthcheck:
       test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
       interval: 30s
@@ -112,3 +99,73 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+
+  # ─── MailHog (Local SMTP testing) ──────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: monitor-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - monitor-net
+
+  # ─── Monitor Backend (Spring Boot) ──────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: monitor-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle:1521:xe
+      SPRING_DATASOURCE_USERNAME: system
+      SPRING_DATASOURCE_PASSWORD: ${ORACLE_PASSWORD:-oracle}
+      MONITOR_PASSWORD: ${MONITOR_PASSWORD}
+      SPRING_MAIL_HOST: mailhog
+      SPRING_MAIL_PORT: 1025
+      SPRING_MAIL_USERNAME: "dev@monitor.local"
+      SPRING_MAIL_PASSWORD: "not-needed-for-dev"
+      MONITOR_OUTBOX_JPA_ENABLED: "true"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      oracle:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    networks:
+      - monitor-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # ── Monitor Frontend (Next.js) ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: monitor-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - monitor-net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', (res) => { if (res.statusCode === 200) process.exit(0); else process.exit(1); }).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
