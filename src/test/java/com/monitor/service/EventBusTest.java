@@ -1,23 +1,46 @@
 package com.monitor.service;
 
-import com.monitor.model.EventType;
-import com.monitor.model.Severity;
-import com.monitor.model.UnifiedEvent;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-
-import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import com.monitor.model.EventType;
+import com.monitor.model.Severity;
+import com.monitor.model.UnifiedEvent;
 
 class EventBusTest {
 
     private EventBus eventBus;
+
+    // A simple fake emitter that counts calls to avoid Mockito/ByteBuddy issues on Java 25
+    private static class FakeSseEmitter extends SseEmitter {
+        private final AtomicInteger sendCount = new AtomicInteger(0);
+        private final boolean shouldFailOnSecondCall;
+
+        FakeSseEmitter(Long timeout, boolean shouldFailOnSecondCall) {
+            super(timeout);
+            this.shouldFailOnSecondCall = shouldFailOnSecondCall;
+        }
+
+        @Override
+        public void send(SseEventBuilder builder) throws IOException {
+            int current = sendCount.incrementAndGet();
+            if (shouldFailOnSecondCall && current == 2) {
+                throw new IOException("disconnected");
+            }
+        }
+
+        int getSendCount() {
+            return sendCount.get();
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -26,41 +49,28 @@ class EventBusTest {
 
     @Test
     void addEmitter_doesNotThrow() {
-        SseEmitter emitter = new SseEmitter(1000L);
+        FakeSseEmitter emitter = new FakeSseEmitter(1000L, false);
         assertDoesNotThrow(() -> eventBus.addEmitter(emitter));
     }
 
     @Test
     void addEmitter_sendsInitialHeartbeat() {
-        List<Object> received = new CopyOnWriteArrayList<>();
-        SseEmitter emitter = new SseEmitter(5000L) {
-            @Override
-            public void send(SseEventBuilder builder) throws IOException {
-                received.add(builder);
-            }
-        };
-
+        FakeSseEmitter emitter = new FakeSseEmitter(5000L, false);
         eventBus.addEmitter(emitter);
-
-        // This one is synchronous in addEmitter, but let's be safe
-        await().atMost(2, TimeUnit.SECONDS).until(() -> received.size() == 1);
+        
+        // Initial heartbeat is synchronous in addEmitter
+        assertEquals(1, emitter.getSendCount());
     }
 
     @Test
     void sendHeartbeat_toRegisteredEmitter_sendsPeriodicHeartbeat() {
-        List<Object> received = new CopyOnWriteArrayList<>();
-        SseEmitter emitter = new SseEmitter(5000L) {
-            @Override
-            public void send(SseEventBuilder builder) throws IOException {
-                received.add(builder);
-            }
-        };
-
+        FakeSseEmitter emitter = new FakeSseEmitter(5000L, false);
         eventBus.addEmitter(emitter);
+        
         eventBus.sendHeartbeat();
 
-        // Wait for the async broadcast via Virtual Threads
-        await().atMost(2, TimeUnit.SECONDS).until(() -> received.size() == 2);
+        // Wait for the async broadcast via Virtual Threads (Total: initial + heartbeat)
+        await().atMost(2, TimeUnit.SECONDS).until(() -> emitter.getSendCount() == 2);
     }
 
     @Test
@@ -71,45 +81,29 @@ class EventBusTest {
 
     @Test
     void publish_toRegisteredEmitter_sendsEvent() {
-        List<Object> received = new CopyOnWriteArrayList<>();
-        SseEmitter emitter = new SseEmitter(5000L) {
-            @Override
-            public void send(SseEventBuilder builder) throws IOException {
-                received.add(builder);
-            }
-        };
+        FakeSseEmitter emitter = new FakeSseEmitter(5000L, false);
         eventBus.addEmitter(emitter);
-
+        
         UnifiedEvent event = new UnifiedEvent(EventType.DATA, Severity.CRITICAL, "src", "msg");
         eventBus.publish(event);
 
-        // Wait for the async broadcast via Virtual Threads
-        await().atMost(2, TimeUnit.SECONDS).until(() -> received.size() == 2);
+        // Wait for the async broadcast (Total: initial + publish)
+        await().atMost(2, TimeUnit.SECONDS).until(() -> emitter.getSendCount() == 2);
     }
 
     @Test
     void sendHeartbeat_removesDisconnectedEmitter() {
-        SseEmitter emitter = new SseEmitter(5000L) {
-            private boolean firstSend = true;
-
-            @Override
-            public void send(SseEventBuilder builder) throws IOException {
-                if (firstSend) {
-                    firstSend = false;
-                    return;
-                }
-                throw new IOException("disconnected");
-            }
-        };
-
-        eventBus.addEmitter(emitter);
-
-        assertDoesNotThrow(() -> eventBus.sendHeartbeat());
+        FakeSseEmitter emitter = new FakeSseEmitter(5000L, true);
+        eventBus.addEmitter(emitter); // Calls send (1)
         
-        // Wait a bit for the async removal to potentially happen
-        await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> 
-            assertDoesNotThrow(() -> eventBus.publish(
-                new UnifiedEvent(EventType.DATA, Severity.INFO, "src", "msg")))
-        );
+        eventBus.sendHeartbeat(); // Fails on send (2)
+        
+        // Wait for the failed heartbeat attempt (including removal) to complete
+        await().atMost(2, TimeUnit.SECONDS).until(() -> emitter.getSendCount() == 2);
+
+        // Now verify that a subsequent publish doesn't increment count further
+        eventBus.publish(new UnifiedEvent(EventType.DATA, Severity.INFO, "src", "msg"));
+        // If it was removed, count stays at 2 (failed attempt included)
+        assertEquals(2, emitter.getSendCount());
     }
 }
