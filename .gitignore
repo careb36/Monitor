@@ -1,4 +1,11 @@
-# OS / System
+# AI Agent Orchestration & Workflow (Confidential)
+scripts/agent-*
+AGENTS.md
+.agent-sync/
+.agent/
+.atl/
+openspec/
+engram-*.json
 .DS_Store
 Thumbs.db
 .directory
@@ -35,6 +42,9 @@ buildNumber.properties
 *.pid
 hs_err_pid*
 replay_pid*
+
+# Agent Orchestration (local state)
+.agent-sync/
 
 # Reports / Quality Tools
 target/site/

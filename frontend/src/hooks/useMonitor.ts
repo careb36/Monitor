@@ -1,29 +1,28 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MonitorState, UnifiedEvent } from '@/lib/types';
+import { ConnectionStatus, MonitorState, UnifiedEvent } from '@/lib/types';
 
 const SSE_URL = '/api/events/stream';
 const MAX_LOG_ENTRIES = 100;
+const STALE_THRESHOLD_MS = 15_000;
+const RECONNECT_THRESHOLD_MS = 30_000;
 
-/**
- * Custom hook that manages the EventSource (SSE) connection to the Spring Boot
- * backend.  It separates incoming events into infrastructure status and data
- * log entries, updating the shared monitor state accordingly.
- *
- * The connection is only opened after the user clicks "Start Monitoring" so
- * that the AudioContext can be created in a user-gesture callback.
- */
 export function useMonitor() {
   const [state, setState] = useState<MonitorState>({
     infrastructure: [],
     logs: [],
-    connected: false,
+    connected: 'DISCONNECTED',
   });
   const [active, setActive] = useState(false);
+  const [reconnectKey, setReconnectKey] = useState(0);
 
   const esRef = useRef<EventSource | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const lastEventRef = useRef<number>(0);
+  const staleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectingRef = useRef(false);
+  const lastReconnectAttemptRef = useRef(0);
 
   // ── Audio helpers ────────────────────────────────────────────────────────
   const initAudio = useCallback(() => {
@@ -65,23 +64,53 @@ export function useMonitor() {
         playCriticalAlert();
       }
 
+      lastEventRef.current = Date.now();
       setState((prev) => {
+        const base: MonitorState = {
+          ...prev,
+          connected: 'CONNECTED' as ConnectionStatus,
+        };
         if (event.type === 'INFRASTRUCTURE') {
-          // Replace the status entry for this source (keep latest per source)
-          const others = prev.infrastructure.filter((e) => e.source !== event.source);
-          return {
-            ...prev,
-            infrastructure: [event, ...others],
-          };
+          const others = base.infrastructure.filter((e) => e.source !== event.source);
+          return { ...base, infrastructure: [{ ...event, receivedAt: Date.now() }, ...others] };
         } else {
-          // Prepend to the log, capped at MAX_LOG_ENTRIES
-          const updated = [event, ...prev.logs].slice(0, MAX_LOG_ENTRIES);
-          return { ...prev, logs: updated };
+          const updated = [event, ...base.logs].slice(0, MAX_LOG_ENTRIES);
+          return { ...base, logs: updated };
         }
       });
     },
     [playCriticalAlert],
   );
+
+  // ── Heartbeat checker — STALE at 15s, reconnect at 30s ──────────────────
+  useEffect(() => {
+    if (!active) return;
+
+    staleTimerRef.current = setInterval(() => {
+      if (lastEventRef.current === 0) return;
+      const elapsed = Date.now() - lastEventRef.current;
+      if (elapsed >= RECONNECT_THRESHOLD_MS) {
+        const now = Date.now();
+        const shouldRetry =
+          !reconnectingRef.current || now - lastReconnectAttemptRef.current >= RECONNECT_THRESHOLD_MS;
+        if (shouldRetry) {
+          reconnectingRef.current = true;
+          lastReconnectAttemptRef.current = now;
+          setReconnectKey((k) => k + 1);
+          setState((s) => ({ ...s, connected: 'CONNECTING' }));
+        }
+      } else if (elapsed >= STALE_THRESHOLD_MS) {
+        setState((s) => (s.connected === 'CONNECTED' ? { ...s, connected: 'STALE' } : s));
+      }
+    }, 1_000);
+
+    return () => {
+      if (staleTimerRef.current) {
+        clearInterval(staleTimerRef.current);
+        staleTimerRef.current = null;
+      }
+    };
+  }, [active]);
 
   // ── SSE connection lifecycle ─────────────────────────────────────────────
   useEffect(() => {
@@ -92,8 +121,13 @@ export function useMonitor() {
     const es = new EventSource(SSE_URL);
     esRef.current = es;
 
-    es.onopen = () => setState((s) => ({ ...s, connected: true }));
-    es.onerror = () => setState((s) => ({ ...s, connected: false }));
+    es.onopen = () => {
+      lastEventRef.current = Date.now();
+      reconnectingRef.current = false;
+      setState((s) => ({ ...s, connected: 'CONNECTED' }));
+    };
+    es.onerror = () =>
+      setState((s) => (s.connected === 'CONNECTING' ? s : { ...s, connected: 'DISCONNECTED' }));
 
     // The backend sends events with name "infrastructure" or "data"
     es.addEventListener('infrastructure', (e: MessageEvent) => {
@@ -114,15 +148,26 @@ export function useMonitor() {
 
     return () => {
       es.close();
-      setState((s) => ({ ...s, connected: false }));
     };
-  }, [active, handleEvent, initAudio]);
+  }, [active, reconnectKey, handleEvent, initAudio]);
 
   const start = useCallback(() => setActive(true), []);
   const stop = useCallback(() => {
     setActive(false);
+    if (staleTimerRef.current) {
+      clearInterval(staleTimerRef.current);
+      staleTimerRef.current = null;
+    }
     esRef.current?.close();
     esRef.current = null;
+    lastEventRef.current = 0;
+
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(console.error);
+      audioCtxRef.current = null;
+    }
+
+    setState((s) => ({ ...s, connected: 'DISCONNECTED' }));
   }, []);
 
   return { state, active, start, stop };
