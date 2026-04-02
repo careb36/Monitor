@@ -1,6 +1,7 @@
 package com.monitor.service;
 
 import com.monitor.model.UnifiedEvent;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Central in-memory event bus that decouples event producers (Kafka, Polling)
@@ -28,6 +30,20 @@ public class EventBus {
     
     // Dedicated Virtual Thread executor for non-blocking I/O fan-out
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down EventBus executor...");
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
 
     /**
      * Registers a new SSE client emitter.

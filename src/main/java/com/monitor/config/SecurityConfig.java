@@ -83,6 +83,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Stateless API – no session-based CSRF
                 .cors(Customizer.withDefaults()) // Uses CorsConfig bean
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/api/events/stream")
                             .hasRole("MONITOR_USER")
                         .requestMatchers("/api/admin/**")

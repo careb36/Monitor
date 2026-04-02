@@ -1,0 +1,17 @@
+# Dependencies (installed in build stage)
+node_modules/
+
+# Build output (generated in build stage)
+.next/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+*.iml
+
+# Misc
+*.md

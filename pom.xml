@@ -19,7 +19,7 @@
     <packaging>jar</packaging>
 
     <name>Monitor</name>
-    <description>Real-time operations monitoring dashboard – Spring Boot 4.x backend.</description>
+    <description>Real-time operations monitoring dashboard – Spring Boot 3.4.x backend.</description>
 
     <properties>
         <java.version>21</java.version>
@@ -73,6 +73,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Scheduling & async support (included in spring-boot-starter) -->
         <dependency>
@@ -80,14 +85,10 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- JSON serialization -->
+        <!-- Actuator (health endpoint for Docker healthcheck) -->
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
         <!-- Security & Rate Limiting -->
@@ -135,11 +136,13 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>4.0.5</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -154,8 +157,8 @@
                         <configuration>
                             <rules>
                                 <requireJavaVersion>
-                                    <version>[21,22]</version>
-                                    <message>EL PROYECTO MONITOR REQUIERE JAVA 21 (LTS). TU VERSION DE JAVA NO ES COMPATIBLE.</message>
+                                    <version>[21,)</version>
+                                    <message>EL PROYECTO MONITOR REQUIERE AL MENOS JAVA 21 (LTS). TU VERSION DE JAVA NO ES COMPATIBLE.</message>
                                 </requireJavaVersion>
                             </rules>
                         </configuration>
