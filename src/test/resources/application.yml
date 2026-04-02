@@ -32,7 +32,7 @@ spring:
 monitor:
   security:
     username: testuser
-    password: testpass
+    password: ${MONITOR_TEST_PASSWORD:t3st-0nly-n0t-pr0d}
   cors:
     allowed-origins: http://localhost:3000
   kafka:
