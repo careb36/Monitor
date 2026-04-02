@@ -1,8 +1,8 @@
 # Architecture Decision Records (ADRs)
 
-**Architectural Rationale Library / Biblioteca de Racional Arquitect�nico**
+**Architectural Rationale Library / Biblioteca de Racional Arquitectónico**
 
-[English](#english) | [Espa�ol](#espa�ol)
+[English](#english) | [Español](#español)
 
 ---
 
@@ -24,6 +24,7 @@ The goal is to explain **why** key choices were made, not only what the code cur
 - `0000-adr-template.md` - reusable template for future decisions
 - `0001-use-sse-eventbus-fanout.md` - rationale for SSE fan-out through `EventBus`
 - `0002-duplicate-critical-events-to-sse-and-email.md` - rationale for CRITICAL propagation to both dashboard and email
+- `0003-refactor-eventbus-virtual-threads-and-concurrenthashmap.md` - Virtual Threads and ConcurrentHashMap refactor for 10k+ concurrent clients
 
 ### Conventions
 
@@ -45,31 +46,32 @@ The initial ADRs are grounded in:
 
 ---
 
-<a id="espa�ol"></a>
-## Espa�ol
+<a id="español"></a>
+## Español
 
 ### Resumen Ejecutivo
 
-Esta carpeta captura decisiones duraderas que explican por qu� la arquitectura actual funciona como lo hace.
-Complementa los diagramas y el c�digo al registrar el racional detr�s de decisiones de dise�o cr�ticas.
+Esta carpeta captura decisiones duraderas que explican por qué la arquitectura actual funciona como lo hace.
+Complementa los diagramas y el código al registrar el racional detrás de decisiones de diseño críticas.
 
-### Prop�sito
+### Propósito
 
-Esta carpeta captura decisiones arquitectonicas duraderas que ya son visibles en la implementacion.
-El objetivo es explicar **por que** se tomaron ciertas decisiones clave, no solo describir lo que el codigo hace hoy.
+Esta carpeta captura decisiones arquitectónicas duraderas que ya son visibles en la implementación.
+El objetivo es explicar **por qué** se tomaron ciertas decisiones clave, no solo describir lo que el código hace hoy.
 
-### �ndice ADR
+### Índice ADR
 
 - `0000-adr-template.md` - plantilla reutilizable para futuras decisiones
-- `0001-use-sse-eventbus-fanout.md` - justificacion del fan-out SSE mediante `EventBus`
-- `0002-duplicate-critical-events-to-sse-and-email.md` - justificacion de la propagacion CRITICAL a dashboard y correo
+- `0001-use-sse-eventbus-fanout.md` - justificación del fan-out SSE mediante `EventBus`
+- `0002-duplicate-critical-events-to-sse-and-email.md` - justificación de la propagación CRITICAL a dashboard y correo
+- `0003-refactor-eventbus-virtual-threads-and-concurrenthashmap.md` - refactor con Hilos Virtuales y ConcurrentHashMap para 10k+ clientes concurrentes
 
 ### Convenciones
 
 - Usa numeracion incremental: `0003-...`, `0004-...`, etc.
-- Manten estados explicitos: `Proposed`, `Accepted`, `Superseded`, `Deprecated`
-- Referencia archivos concretos de implementacion siempre que sea posible
-- Prefiere documentar decisiones ya implementadas sobre arquitectura aspiracional
+- Mantené estados explícitos: `Proposed`, `Accepted`, `Superseded`, `Deprecated`
+- Referenciá archivos concretos de implementación siempre que sea posible
+- Preferí documentar decisiones ya implementadas sobre arquitectura aspiracional
 
 ### Conjunto Actual de Referencia
 
