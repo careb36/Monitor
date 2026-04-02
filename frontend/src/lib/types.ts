@@ -16,3 +16,4 @@ export interface MonitorState {
   connected: ConnectionStatus;
   lastEventTimestamp: number;
 }
+
