@@ -47,6 +47,11 @@ It is designed to serve three audiences:
 - `docs/operations/README.md` - operations index
 - `docs/operations/monitor-operations-runbook.md` - operational runbook
 
+#### Security Reports
+
+- `docs/reports/SECURITY-AUDIT.md` - baseline security assessment and findings catalog
+- `docs/reports/SECURITY-HARDENING-READINESS.md` - current closure/readiness status for findings #8-#14
+
 ### Recommended Reading Paths
 
 #### For executives or architects
@@ -133,6 +138,11 @@ Esta dise�ado para tres audiencias:
 
 - `docs/operations/README.md` - indice operativo
 - `docs/operations/monitor-operations-runbook.md` - runbook operativo
+
+#### Reportes de Seguridad
+
+- `docs/reports/SECURITY-AUDIT.md` - evaluacion base de seguridad y catalogo de hallazgos
+- `docs/reports/SECURITY-HARDENING-READINESS.md` - estado actual de cierre/readiness para hallazgos #8-#14
 
 ### Rutas de Lectura Recomendadas
 
