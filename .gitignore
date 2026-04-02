@@ -36,6 +36,9 @@ buildNumber.properties
 hs_err_pid*
 replay_pid*
 
+# Agent Orchestration (local state)
+.agent-sync/
+
 # Reports / Quality Tools
 target/site/
 dependency-check-report.html

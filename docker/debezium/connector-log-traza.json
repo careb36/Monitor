@@ -6,24 +6,19 @@
 
     "database.hostname": "oracle",
     "database.port": "1521",
-    "database.user": "${env:MONITOR_APP_USER}",
-    "database.password": "${env:MONITOR_APP_PASS}",
+    "database.user": "monitor_app",
+    "database.password": "monitor_password",
     "database.dbname": "XE",
+    "database.pdb.name": "",
     "database.server.name": "oracle",
 
     "database.history.kafka.bootstrap.servers": "kafka:29092",
     "database.history.kafka.topic": "schema-changes.monitor",
 
-    "table.include.list": "${env:MONITOR_APP_USER:MONITOR_APP}.LOG_TRAZA",
+    "table.include.list": "MONITOR_APP.LOG_TRAZA",
 
     "snapshot.mode": "initial",
-
     "tombstones.on.delete": "false",
-
-    "transforms": "insertOnly",
-    "transforms.insertOnly.type": "io.debezium.transforms.Filter",
-    "transforms.insertOnly.language": "jsr223.groovy",
-    "transforms.insertOnly.condition": "value.op == 'c'",
 
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
     "key.converter.schemas.enable": "false",
