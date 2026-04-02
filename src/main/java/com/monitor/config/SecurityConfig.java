@@ -110,7 +110,7 @@ public class SecurityConfig {
                         .contentSecurityPolicy(csp -> csp
                                 .policyDirectives("default-src 'none'; frame-ancestors 'none'; base-uri 'none'"))
                         // Permissions-Policy – disable all browser APIs
-                        .permissionsPolicy(permissions -> permissions
+                        .permissionsPolicyHeader(permissions -> permissions
                                 .policy("camera=(), microphone=(), geolocation=(), payment=()")))
                 .build();
     }
