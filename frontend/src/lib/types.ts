@@ -8,6 +8,7 @@ export interface UnifiedEvent {
   source: string;
   message: string;
   timestamp: string;
+  receivedAt?: number; // Local timestamp when event was received by frontend
 }
 
 export interface MonitorState {
