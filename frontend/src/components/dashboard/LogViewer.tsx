@@ -7,9 +7,16 @@ export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
   const [severityFilter, setSeverityFilter] = useState<string | null>(null);
   const [textSearch, setTextSearch] = useState('');
   const [paused, setPaused] = useState(false);
+  const [pausedSnapshot, setPausedSnapshot] = useState<UnifiedEvent[] | null>(null);
+  const [clearCutoffMs, setClearCutoffMs] = useState<number | null>(null);
 
-  // Use a frozen copy of logs when paused
-  const displayLogs = paused ? logs.slice() : logs;
+  // Hide all entries up to the moment the operator pressed CLEAR.
+  const visibleLogs = clearCutoffMs
+    ? logs.filter((event) => Date.parse(event.timestamp) > clearCutoffMs)
+    : logs;
+
+  // Freeze list when paused so incoming events do not update current view.
+  const displayLogs = paused ? pausedSnapshot ?? visibleLogs : visibleLogs;
 
   const filteredLogs = displayLogs
     .filter((l) => (severityFilter ? l.severity === severityFilter : true))
@@ -23,11 +30,24 @@ export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
     });
 
   const handleClear = () => {
-    // In a real app, this would call a function to clear logs from parent
-    // For now, we just clear the text search
-    setTextSearch('');
-    setPaused(false);
+    setClearCutoffMs(Date.now());
+    if (paused) {
+      setPausedSnapshot([]);
+    }
   };
+
+  const handleTogglePaused = () => {
+    if (!paused) {
+      setPausedSnapshot(visibleLogs);
+      setPaused(true);
+      return;
+    }
+
+    setPaused(false);
+    setPausedSnapshot(null);
+  };
+
+  const bufferedCount = paused ? Math.max(visibleLogs.length - (pausedSnapshot?.length ?? 0), 0) : 0;
 
   return (
     <section className="flex flex-col h-full bg-bg-base flex-1 overflow-hidden">
@@ -39,7 +59,7 @@ export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
           </h2>
           <div className="flex gap-2">
             <button
-              onClick={() => setPaused(!paused)}
+              onClick={handleTogglePaused}
               className={`px-3 py-1 rounded text-xs font-bold tracking-wider border transition-colors ${
                 paused
                   ? 'bg-status-warn text-black border-status-warn'
@@ -95,7 +115,7 @@ export function LogViewer({ logs }: { logs: UnifiedEvent[] }) {
       {/* Status indicator when paused */}
       {paused && (
         <div className="px-6 py-2 bg-status-warn bg-opacity-10 border-t border-status-warn text-xs text-status-warn font-bold uppercase tracking-wider">
-          ⏸ Paused - showing {filteredLogs.length} of {logs.length} events. Press LIVE to resume.
+          ⏸ Paused - {bufferedCount} new events buffered. Press LIVE to resume.
         </div>
       )}
     </section>

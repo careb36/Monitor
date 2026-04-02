@@ -22,6 +22,8 @@ export function useMonitor() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const lastEventRef = useRef<number>(0);
   const staleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectingRef = useRef(false);
+  const lastReconnectAttemptRef = useRef(0);
 
   // ── Audio helpers ────────────────────────────────────────────────────────
   const initAudio = useCallback(() => {
@@ -90,9 +92,15 @@ export function useMonitor() {
       if (lastEventRef.current === 0) return;
       const elapsed = Date.now() - lastEventRef.current;
       if (elapsed >= RECONNECT_THRESHOLD_MS) {
-        lastEventRef.current = Date.now(); // reset to avoid cascading reconnects
-        setReconnectKey((k) => k + 1);
-        setState((s) => ({ ...s, connected: 'CONNECTING' }));
+        const now = Date.now();
+        const shouldRetry =
+          !reconnectingRef.current || now - lastReconnectAttemptRef.current >= RECONNECT_THRESHOLD_MS;
+        if (shouldRetry) {
+          reconnectingRef.current = true;
+          lastReconnectAttemptRef.current = now;
+          setReconnectKey((k) => k + 1);
+          setState((s) => ({ ...s, connected: 'CONNECTING' }));
+        }
       } else if (elapsed >= STALE_THRESHOLD_MS) {
         setState((s) => (s.connected === 'CONNECTED' ? { ...s, connected: 'STALE' } : s));
       }
@@ -117,9 +125,11 @@ export function useMonitor() {
 
     es.onopen = () => {
       lastEventRef.current = Date.now();
+      reconnectingRef.current = false;
       setState((s) => ({ ...s, connected: 'CONNECTED', lastEventTimestamp: lastEventRef.current }));
     };
-    es.onerror = () => setState((s) => ({ ...s, connected: 'DISCONNECTED' }));
+    es.onerror = () =>
+      setState((s) => (s.connected === 'CONNECTING' ? s : { ...s, connected: 'DISCONNECTED' }));
 
     // The backend sends events with name "infrastructure" or "data"
     es.addEventListener('infrastructure', (e: MessageEvent) => {
