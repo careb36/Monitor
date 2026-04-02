@@ -1,9 +1,9 @@
 package com.monitor.service;
 
-import com.monitor.model.OutboxStatus;
-import com.monitor.model.UnifiedEvent;
-import com.monitor.service.persistence.CriticalOutboxEntity;
-import com.monitor.service.persistence.CriticalOutboxRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,9 +13,10 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import com.monitor.model.OutboxStatus;
+import com.monitor.model.UnifiedEvent;
+import com.monitor.service.persistence.CriticalOutboxEntity;
+import com.monitor.service.persistence.CriticalOutboxRepository;
 
 /**
  * JPA-backed implementation of {@link CriticalOutbox} for durable event persistence.
@@ -73,6 +74,7 @@ public class JpaCriticalOutbox implements CriticalOutbox {
         entity.setNextAttemptAt(now);
         entity.setDelivered(false);
         entity.setStatus(OutboxStatus.PENDING);
+        entity.setLastStatusChangeAt(now);
         entity.setLastError("");
         long id = repository.save(entity).getId();
         log.info("CRITICAL EVENT SAVED: id={} type={} severity={} source={} message={}",
@@ -92,10 +94,12 @@ public class JpaCriticalOutbox implements CriticalOutbox {
     @Transactional
     public void markDelivered(long id) {
         repository.findById(id).ifPresent(entity -> {
+            Instant now = Instant.now();
             entity.setAttempts(entity.getAttempts() + 1);
             entity.setDelivered(true);
             entity.setStatus(OutboxStatus.DELIVERED);
-            entity.setNextAttemptAt(Instant.now());
+            entity.setLastStatusChangeAt(now);
+            entity.setNextAttemptAt(now);
             repository.save(entity);
             log.info("CRITICAL EVENT DELIVERED: id={} source={} totalAttempts={}",
                     id, entity.getSource(), entity.getAttempts());
@@ -111,6 +115,7 @@ public class JpaCriticalOutbox implements CriticalOutbox {
                 throw new ObjectOptimisticLockingFailureException(CriticalOutboxEntity.class, id);
             }
             entity.setStatus(OutboxStatus.PROCESSING);
+            entity.setLastStatusChangeAt(Instant.now());
             repository.save(entity);
             log.debug("CRITICAL EVENT PROCESSING: id={}", id);
         });
@@ -123,6 +128,7 @@ public class JpaCriticalOutbox implements CriticalOutbox {
             entity.setAttempts(entity.getAttempts() + 1);
             entity.setDelivered(false);
             entity.setStatus(OutboxStatus.PENDING);
+            entity.setLastStatusChangeAt(Instant.now());
             entity.setNextAttemptAt(nextAttemptAt);
             entity.setLastError(reason);
             repository.save(entity);
@@ -145,6 +151,7 @@ public class JpaCriticalOutbox implements CriticalOutbox {
             log.warn("TIMEOUT: Resetting entry {} from PROCESSING to PENDING (locked at {})",
                     entity.getId(), entity.getLastStatusChangeAt());
             entity.setStatus(OutboxStatus.PENDING);
+            entity.setLastStatusChangeAt(Instant.now());
             repository.save(entity);
         }
     }
