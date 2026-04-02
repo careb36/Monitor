@@ -15,6 +15,7 @@ This document describes all security controls implemented in the Monitor Dashboa
 7. [Docker Hardening](#7-docker-hardening)
 8. [Audit Logging](#8-audit-logging)
 9. [CI/CD Pipeline Security](#9-cicd-pipeline-security)
+10. [Kafka Secure Transport Hardening](#10-kafka-secure-transport-hardening)
 
 ---
 
@@ -270,6 +271,40 @@ mvn --batch-mode clean verify -Powasp
 
 ---
 
+## 10. Kafka Secure Transport Hardening
+
+### Scope
+
+This section documents the controls implemented to address transport encryption/authentication risk in Kafka rollout scenarios.
+
+### Controls
+
+- Secure overlay file: `docker-compose.secure.yml`
+- Full secure activation flow: `scripts/kafka-enable-secure-mode.sh`
+- Preflight guard: `scripts/kafka-secure-preflight.sh`
+- Smoke validation: `scripts/kafka-secure-smoke.sh`
+- SCRAM bootstrap utility: `scripts/kafka-bootstrap-scram-users.sh`
+- TLS artifact generator: `scripts/kafka-generate-secrets.sh`
+
+### Important hardening details
+
+- cp-kafka startup preflight can fail if ZooKeeper readiness inherits broker JAAS settings.
+- Secure overlay explicitly sets `ZOOKEEPER_SASL_ENABLED=false` for this startup path.
+- Broker certificate generation includes SANs for `kafka`, `localhost`, and `monitor-kafka`.
+- Client-side endpoint identification is configured for local self-signed rollout compatibility.
+
+### Operational verification
+
+```bash
+./scripts/kafka-secure-preflight.sh
+./scripts/kafka-enable-secure-mode.sh
+./scripts/kafka-secure-smoke.sh
+```
+
+Expected result: secure smoke exits 0 and reports PASS.
+
+---
+
 ## Security Contacts
 
 For security issues, contact the operations team:
@@ -278,4 +313,4 @@ For security issues, contact the operations team:
 
 ---
 
-*Last updated: 2026-03-31*
+*Last updated: 2026-04-02*

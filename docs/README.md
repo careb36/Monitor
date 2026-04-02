@@ -46,11 +46,19 @@ It is designed to serve three audiences:
 
 - `docs/operations/README.md` - operations index
 - `docs/operations/monitor-operations-runbook.md` - operational runbook
+- `docs/operations/kafka-sasl-ssl-quickstart.md` - secure Kafka activation flow
+- `docs/operations/kafka-sasl-ssl-troubleshooting.md` - secure Kafka diagnostics
+- `docs/operations/kafka-sasl-ssl-acceptance-checklist.md` - acceptance and closure checklist
 
 #### Security Reports
 
 - `docs/reports/SECURITY-AUDIT.md` - baseline security assessment and findings catalog
 - `docs/reports/SECURITY-HARDENING-READINESS.md` - current closure/readiness status for findings #8-#14
+
+### Latest Closure Update
+
+- Security hardening phase for findings #8 to #14 was completed and promoted to `main` on 2026-04-02.
+- Release evidence for Kafka secure mode is captured in the security readiness report and operations acceptance checklist.
 
 ### Recommended Reading Paths
 

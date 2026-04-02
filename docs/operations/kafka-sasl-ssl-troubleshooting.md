@@ -42,6 +42,28 @@ Recovery path:
 2. Recreate credentials and secrets
 3. Re-run secure activation flow
 
+### 5) Broker unhealthy with ZooKeeper timeout during startup preflight
+Symptoms:
+- Kafka container repeatedly restarts or becomes unhealthy
+- logs show timeout waiting for ZooKeeper while SASL is enabled
+
+Checks:
+- Verify secure overlay sets `ZOOKEEPER_SASL_ENABLED=false`
+- Verify `KAFKA_OPTS` includes JAAS file and `-Dzookeeper.sasl.client=false`
+
+Why:
+- cp-kafka startup helper can run `cub zk-ready` with JAAS options unless ZooKeeper SASL is explicitly disabled for this path.
+
+### 6) SSL handshake failed: No name matching kafka found
+Symptoms:
+- Kafka logs show `SSLHandshakeException` with hostname mismatch
+- broker never reaches healthy state in secure overlay
+
+Checks:
+- Regenerate TLS materials with broker certificate SANs including `kafka`, `localhost`, and `monitor-kafka`
+- Re-run `./scripts/kafka-generate-secrets.sh`
+- Re-run full secure flow: `./scripts/kafka-enable-secure-mode.sh`
+
 ## Quick diagnostics
 - Container state:
   - docker compose ps

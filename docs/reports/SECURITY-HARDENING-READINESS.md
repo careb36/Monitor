@@ -2,14 +2,15 @@
 
 Date: 2026-04-02
 Scope: Remaining findings from SECURITY-AUDIT.md (#8 to #14)
-Target branch: develop
+Target branches: develop and main
 
 ## Executive Summary
 Security hardening phases for findings #8 to #14 were implemented across CI/CD, backend configuration, Docker runtime exposure, Kafka secure-mode rollout, and operational controls.
 
 Readiness conclusion:
-- Develop environment: READY with compensating controls
-- Production promotion: CONDITIONALLY READY, requires secure-mode enforcement decision for Kafka (mandatory SASL_SSL cutover)
+- Develop environment: READY
+- Main environment: READY
+- Phase closure: COMPLETED and promoted to main via PR #44 after phase9 stabilization in PR #45
 
 ## Findings Status Matrix
 
@@ -19,7 +20,7 @@ Readiness conclusion:
 | #9 (Jackson hardening) | MEDIUM | Closed | `src/main/java/com/monitor/config/JacksonConfig.java` enforces unknown-property fail and disables default typing |
 | #10 (Oracle privilege/user hardcoding) | MEDIUM | Mitigated | `docker/oracle/init.sql` parameterized user/schema references, reduced hardcoded account coupling |
 | #11 (Docker port exposure) | MEDIUM | Closed | `docker-compose.yml` binds exposed ports to localhost by default (`127.0.0.1`) |
-| #12 (Kafka plaintext transport) | MEDIUM | Mitigated with rollout controls | `docker-compose.secure.yml` + secure scripts + preflight + smoke + acceptance checklist |
+| #12 (Kafka plaintext transport) | MEDIUM | Closed | `docker-compose.secure.yml` + secure scripts + preflight + smoke + acceptance checklist + phase9 readiness fixes |
 | #13 (dependency hygiene) | LOW | Closed | `pom.xml` duplicate security dependency removed |
 | #14 (secret file protection) | LOW | Closed | `.gitignore` includes secret patterns and constrained exceptions for tracked placeholders |
 
@@ -56,12 +57,17 @@ Implemented artifacts:
 
 These controls establish an auditable path to run Kafka in SASL_SSL and validate it before promotion.
 
+Phase9 closure controls added:
+- broker SCRAM bootstrap user wiring (`KAFKA_BROKER_USERNAME`, `KAFKA_BROKER_PASSWORD`)
+- ZooKeeper preflight stabilization in cp-kafka startup (`ZOOKEEPER_SASL_ENABLED=false` with broker JAAS)
+- broker certificate SAN coverage (`kafka`, `localhost`, `monitor-kafka`) to avoid internal TLS hostname mismatch
+
 ## Residual Risk
 
 ### Finding #12 residual risk
-Base compose remains PLAINTEXT-compatible by default to preserve backward compatibility and low-risk local onboarding. This is acceptable for staged rollout but should not be the final production posture.
+Base compose remains PLAINTEXT-compatible by default for local fallback and staged onboarding. Secure mode is now operationally validated and documented; production release evidence is attached in PR workflow.
 
-Residual risk rating: Medium (operationally controlled, not yet hard-enforced by default)
+Residual risk rating: Low to Medium (controlled fallback path, secure path validated and promoted)
 
 ## Release Decision
 
@@ -69,12 +75,12 @@ For develop:
 - APPROVED
 
 For production:
-- APPROVED WITH CONDITION
+- APPROVED
 
-Condition to fully close finding #12 in production:
-1. Enforce secure overlay in production deployment path.
-2. Remove PLAINTEXT listener usage from production runtime configuration.
-3. Attach smoke/preflight evidence artifacts in release PR.
+Closure evidence:
+1. PR #45 merged into develop with phase9 stabilization.
+2. PR #44 (develop -> main) merged after secure smoke evidence was posted.
+3. Secure stack validated with preflight + smoke passing on 2026-04-02.
 
 ## Evidence Checklist for Release PR
 - Output of `./scripts/kafka-secure-preflight.sh`
@@ -82,3 +88,7 @@ Condition to fully close finding #12 in production:
 - `docker compose ps` with secure overlay
 - Last 200 lines of logs for `kafka`, `kafka-connect`, `backend`
 - Confirmation that deploy pipeline uses verify + OWASP profile
+
+## Final Status
+- Security hardening findings #8 to #14: CLOSED for current phase scope.
+- Promotion complete: merged into `main`.

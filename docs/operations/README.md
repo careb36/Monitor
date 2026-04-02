@@ -14,6 +14,10 @@
 This folder is the operational entry point for validating and troubleshooting `Monitor`.
 It is designed to answer one question quickly: **is the platform healthy, observable, and connected end to end?**
 
+Current phase status:
+- Kafka secure rollout hardening phase is closed (2026-04-02).
+- Release promotion evidence was validated via preflight + secure smoke procedures.
+
 ### Purpose
 
 This folder contains operational documentation for the current `Monitor` implementation.
@@ -36,6 +40,7 @@ The operations set covers:
 - Kafka / Debezium ingestion checks
 - polling behavior checks
 - CRITICAL email notification checks
+- secure Kafka (SASL_SSL) bootstrap, validation, and rollback
 
 ---
 

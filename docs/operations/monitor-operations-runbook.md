@@ -74,6 +74,21 @@ Expected behavior:
 
 ### Smoke Checks
 
+#### Secure Kafka mode (SASL_SSL) validation
+
+When closing security hardening or validating release-readiness for Kafka transport:
+
+```bash
+./scripts/kafka-secure-preflight.sh
+./scripts/kafka-enable-secure-mode.sh
+./scripts/kafka-secure-smoke.sh
+```
+
+Expected behavior:
+- preflight passes with required env vars and secret files
+- secure stack starts with Kafka healthy
+- smoke script exits 0 and reports PASS
+
 #### Backend HTTP listener
 
 ```bash
@@ -245,6 +260,21 @@ Comportamiento esperado:
 - el dashboard abre el `EventSource` despues de la activacion del usuario
 
 ### Smoke Checks
+
+#### Validacion de Kafka seguro (SASL_SSL)
+
+Para cierre de hardening de seguridad o validacion de readiness de release en transporte Kafka:
+
+```bash
+./scripts/kafka-secure-preflight.sh
+./scripts/kafka-enable-secure-mode.sh
+./scripts/kafka-secure-smoke.sh
+```
+
+Comportamiento esperado:
+- preflight pasa con env vars y secretos requeridos
+- el stack seguro inicia con Kafka healthy
+- el script de smoke termina en codigo 0 y reporta PASS
 
 #### Listener HTTP del backend
 

@@ -199,6 +199,10 @@ Both services use **multi-stage builds** to minimize image size:
 - **Health endpoint:** `/actuator/health` is publicly accessible (no sensitive details exposed).
 - **Containers:** Both images run as non-root users.
 - **Scanning:** OWASP Dependency-Check in Maven (fail on CVSS ≥ 8.0).
+- **Kafka secure mode:** optional SASL_SSL overlay with automated preflight/smoke validation (`docs/operations/kafka-sasl-ssl-quickstart.md`).
+
+Security hardening note:
+- Findings #8 to #14 from the security audit were closed for the current phase and promoted to `main` (2026-04-02).
 
 ### Running Tests
 

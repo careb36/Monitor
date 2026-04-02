@@ -20,6 +20,9 @@ See required filenames in:
 Example:
 
 ```bash
+export KAFKA_BROKER_USERNAME=broker-user
+export KAFKA_BROKER_PASSWORD=broker-password
+
 export KAFKA_CONNECT_USERNAME=connect-user
 export KAFKA_CONNECT_PASSWORD=connect-password
 export KAFKA_CONNECT_TRUSTSTORE_PASSWORD=changeit
@@ -43,6 +46,12 @@ Or run the full flow in one command:
 ./scripts/kafka-enable-secure-mode.sh
 ```
 
+Recommended path for closure validation is the full flow script because it executes:
+- TLS artifact generation
+- plaintext bootstrap for SCRAM creation
+- secure preflight validation
+- secure overlay activation
+
 ## Troubleshooting preflight
 
 Run explicit prerequisite checks before secure activation:
@@ -63,6 +72,10 @@ Run automated smoke check:
 ```bash
 ./scripts/kafka-secure-smoke.sh
 ```
+
+Expected result:
+- script exits with code 0
+- output includes: `Secure smoke test PASSED`
 
 ## 5) Rollback to plaintext
 

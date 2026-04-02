@@ -12,6 +12,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### [Unreleased]
 
+#### Security
+- Closed security hardening findings #8 to #14 for the current phase and promoted the release from `develop` to `main`.
+- Stabilized Kafka SASL_SSL rollout by fixing cp-kafka ZooKeeper readiness behavior in secure startup.
+- Added broker SCRAM bootstrap requirements and validation in secure preflight.
+- Regenerated broker certificate flow with SANs (`kafka`, `localhost`, `monitor-kafka`) to prevent TLS hostname mismatch during secure bootstrap.
+
+#### Documentation
+- Updated operations and readiness documentation to reflect final phase closure, secure smoke evidence, and release promotion completion.
+
 #### Added
 - Spring Boot Actuator health endpoint (`/actuator/health`) for Docker healthcheck probes.
 - Docker Compose healthchecks for backend (`wget /actuator/health`) and frontend (`wget :3000`).

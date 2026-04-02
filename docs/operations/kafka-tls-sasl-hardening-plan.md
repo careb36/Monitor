@@ -1,7 +1,14 @@
 # Kafka TLS/SASL Hardening Plan (Hallazgo #12)
 
+Status: Completed (phase closed on 2026-04-02)
+
 ## Objective
 Migrate local and production Kafka traffic from PLAINTEXT to authenticated and encrypted transport, without breaking Debezium and Spring Boot consumers.
+
+## Completion Notes
+- Secure rollout automation validated end-to-end.
+- Operational evidence attached during release promotion workflow.
+- Phase9 stabilization applied for startup readiness and TLS hostname compatibility.
 
 ## Scope
 - Service: Kafka broker in docker-compose stack
@@ -11,6 +18,10 @@ Migrate local and production Kafka traffic from PLAINTEXT to authenticated and e
 ## Non-goals
 - No direct cutover in this phase 3 patch set
 - No certificate authority automation in this document
+
+Historical note:
+- This document is retained as planning traceability artifact.
+- Current run procedures are maintained in `kafka-sasl-ssl-quickstart.md` and related operations docs.
 
 ## Current risk
 Current stack uses PLAINTEXT listeners and no SASL authentication. Any actor with network access can read or inject messages.
