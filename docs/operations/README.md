@@ -23,6 +23,7 @@ It is intended for developers, operators, and support engineers who need repeata
 
 - `monitor-operations-runbook.md` - day-to-day operational procedures, smoke checks, and incident-oriented troubleshooting
 - `kafka-sasl-ssl-quickstart.md` - secure Kafka enablement (TLS/SASL) with bootstrap scripts
+- `kafka-sasl-ssl-troubleshooting.md` - failure patterns and diagnostics for Kafka secure mode
 
 ### Scope
 
@@ -53,6 +54,8 @@ Esta pensada para desarrolladores, operadores y personal de soporte que necesite
 ### Indice
 
 - `monitor-operations-runbook.md` - procedimientos operativos diarios, smoke checks y troubleshooting orientado a incidentes
+- `kafka-sasl-ssl-quickstart.md` - habilitacion de Kafka seguro (TLS/SASL) con scripts de bootstrap
+- `kafka-sasl-ssl-troubleshooting.md` - guia de diagnostico para fallas de Kafka en modo seguro
 
 ### Alcance
 

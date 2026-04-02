@@ -43,6 +43,16 @@ Or run the full flow in one command:
 ./scripts/kafka-enable-secure-mode.sh
 ```
 
+## Troubleshooting preflight
+
+Run explicit prerequisite checks before secure activation:
+
+```bash
+./scripts/kafka-secure-preflight.sh
+```
+
+If preflight fails, fix missing env vars/files and rerun.
+
 ## 4) Verify secure mode
 - Kafka broker listener map includes `SASL_SSL`
 - Backend starts with `KAFKA_SECURITY_PROTOCOL=SASL_SSL`
