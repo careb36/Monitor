@@ -1,7 +1,6 @@
 package com.monitor.service;
 
 import com.monitor.config.MonitorPollingTargetsProperties;
-import com.monitor.model.EventType;
 import com.monitor.model.Severity;
 import com.monitor.model.UnifiedEvent;
 import org.junit.jupiter.api.BeforeEach;
