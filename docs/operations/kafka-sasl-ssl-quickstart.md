@@ -4,7 +4,13 @@
 Enable encrypted and authenticated Kafka traffic using `docker-compose.secure.yml` on top of the default stack.
 
 ## 1) Prepare secrets
-Place truststores/keystores and credential files under:
+Generate truststores/keystores and credential files automatically:
+
+```bash
+./scripts/kafka-generate-secrets.sh
+```
+
+Artifacts are written under:
 - `docker/kafka/secrets/`
 
 See required filenames in:
@@ -26,7 +32,15 @@ export KAFKA_BACKEND_TRUSTSTORE_PASSWORD=changeit
 ## 3) Start secure stack
 
 ```bash
+docker compose up -d kafka zookeeper
+./scripts/kafka-bootstrap-scram-users.sh
 docker compose -f docker-compose.yml -f docker-compose.secure.yml up -d
+```
+
+Or run the full flow in one command:
+
+```bash
+./scripts/kafka-enable-secure-mode.sh
 ```
 
 ## 4) Verify secure mode
