@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Frontend (separate build context)
+frontend/
+
+# Build artifacts
+target/
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# CI/CD
+.github/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Docker (avoid recursive copy)
+docker-compose.yml
