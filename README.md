@@ -275,7 +275,7 @@ All changes to `main` and `develop` go through Pull Requests with CI approval.
 
 ### License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [Apache License 2.0](LICENSE).
 
 ---
 
@@ -541,4 +541,4 @@ Todos los cambios a `main` y `develop` pasan por Pull Requests con aprobación d
 
 ### Licencia
 
-Este proyecto está bajo la [Licencia MIT](LICENSE).
+Este proyecto está bajo la [Licencia Apache 2.0](LICENSE).
