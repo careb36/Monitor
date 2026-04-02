@@ -9,9 +9,9 @@ volumes:
   oracle-data:
 
 services:
-  # ── Oracle XE 11g ─────────────────────────────────────────────────────────
+  # ── Oracle XE 21c ─────────────────────────────────────────────────────────
   oracle:
-    image: gvenzl/oracle-xe:11
+    image: gvenzl/oracle-xe:21-slim
     container_name: monitor-oracle
     restart: unless-stopped
     environment:
