@@ -161,6 +161,12 @@ export function useMonitor() {
     esRef.current?.close();
     esRef.current = null;
     lastEventRef.current = 0;
+
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(console.error);
+      audioCtxRef.current = null;
+    }
+
     setState((s) => ({ ...s, connected: 'DISCONNECTED' }));
   }, []);
 

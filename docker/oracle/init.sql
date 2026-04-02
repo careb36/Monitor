@@ -63,7 +63,10 @@ CREATE TABLE monitor_app.critical_outbox (
     next_attempt_at TIMESTAMP       NOT NULL,
     row_version     NUMBER          DEFAULT 0 NOT NULL,
     severity        VARCHAR2(20)    NOT NULL,
-    event_source    VARCHAR2(100)   NOT NULL
+    event_source    VARCHAR2(100)   NOT NULL,
+    status          VARCHAR2(32)    DEFAULT 'PENDING' NOT NULL,
+    last_status_change_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT chk_outbox_status CHECK (status IN ('PENDING', 'PROCESSING', 'DELIVERED'))
 );
 
 -- Enable row-level supplemental logging
