@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SECRETS_DIR="$ROOT_DIR/docker/kafka/secrets"
 
 required_env=(
+  KAFKA_BROKER_USERNAME
+  KAFKA_BROKER_PASSWORD
   KAFKA_BACKEND_USERNAME
   KAFKA_BACKEND_PASSWORD
   KAFKA_CONNECT_USERNAME
@@ -18,6 +20,8 @@ required_files=(
   kafka.truststore.jks
   connect.truststore.jks
   backend.truststore.jks
+  kafka_server_jaas.conf
+  kafka_admin_client.properties
   kafka_keystore_creds
   kafka_sslkey_creds
   kafka_truststore_creds
