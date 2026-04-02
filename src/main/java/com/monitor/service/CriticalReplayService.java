@@ -8,6 +8,21 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
+/**
+ * SSE replay service that re-delivers missed critical events to a reconnecting client.
+ *
+ * <p>When a browser's {@code EventSource} reconnects after a network interruption, it
+ * sends the {@code Last-Event-ID} header containing the ID of the last event it received.
+ * This service reads that header and replays all persisted critical events with a higher
+ * ID directly onto the reconnecting {@link SseEmitter}, ensuring zero message loss for
+ * CRITICAL-severity events across transient disconnects.</p>
+ *
+ * <p>Replay is bounded by {@code monitor.sse.replay-limit} (default: 200 entries) to
+ * prevent memory pressure on reconnect storms.</p>
+ *
+ * @see CriticalOutbox#findAfterId(long, int)
+ * @see com.monitor.controller.SseController
+ */
 @Service
 public class CriticalReplayService {
 
@@ -17,6 +32,12 @@ public class CriticalReplayService {
     private final EventBus eventBus;
     private final int replayLimit;
 
+    /**
+     * @param criticalOutbox the outbox from which missed events are retrieved
+     * @param eventBus       used to send replayed events directly to the reconnecting emitter
+     * @param replayLimit    maximum number of events to replay per reconnect;
+     *                       controlled by {@code monitor.sse.replay-limit} (default: 200)
+     */
     public CriticalReplayService(CriticalOutbox criticalOutbox,
                                  EventBus eventBus,
                                  @Value("${monitor.sse.replay-limit:200}") int replayLimit) {
@@ -25,6 +46,17 @@ public class CriticalReplayService {
         this.replayLimit = replayLimit;
     }
 
+    /**
+     * Replays critical events that occurred after the client's last acknowledged event.
+     *
+     * <p>If {@code lastEventIdHeader} is {@code null}, blank, or not a valid {@code long},
+     * the method returns immediately without replaying anything (first-time connections
+     * do not receive a history).</p>
+     *
+     * @param lastEventIdHeader the raw value of the {@code Last-Event-ID} HTTP header;
+     *                          may be {@code null} for new connections
+     * @param emitter           the newly registered SSE emitter for the reconnecting client
+     */
     public void replaySince(String lastEventIdHeader, SseEmitter emitter) {
         if (lastEventIdHeader == null || lastEventIdHeader.isBlank()) {
             return;

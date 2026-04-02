@@ -13,7 +13,6 @@ export function useMonitor() {
     infrastructure: [],
     logs: [],
     connected: 'DISCONNECTED',
-    lastEventTimestamp: 0,
   });
   const [active, setActive] = useState(false);
   const [reconnectKey, setReconnectKey] = useState(0);
@@ -69,7 +68,6 @@ export function useMonitor() {
       setState((prev) => {
         const base: MonitorState = {
           ...prev,
-          lastEventTimestamp: lastEventRef.current,
           connected: 'CONNECTED' as ConnectionStatus,
         };
         if (event.type === 'INFRASTRUCTURE') {
@@ -126,7 +124,7 @@ export function useMonitor() {
     es.onopen = () => {
       lastEventRef.current = Date.now();
       reconnectingRef.current = false;
-      setState((s) => ({ ...s, connected: 'CONNECTED', lastEventTimestamp: lastEventRef.current }));
+      setState((s) => ({ ...s, connected: 'CONNECTED' }));
     };
     es.onerror = () =>
       setState((s) => (s.connected === 'CONNECTING' ? s : { ...s, connected: 'DISCONNECTED' }));
@@ -150,7 +148,6 @@ export function useMonitor() {
 
     return () => {
       es.close();
-      setState((s) => ({ ...s, connected: 'DISCONNECTED' }));
     };
   }, [active, reconnectKey, handleEvent, initAudio]);
 
@@ -164,6 +161,7 @@ export function useMonitor() {
     esRef.current?.close();
     esRef.current = null;
     lastEventRef.current = 0;
+    setState((s) => ({ ...s, connected: 'DISCONNECTED' }));
   }, []);
 
   return { state, active, start, stop };
