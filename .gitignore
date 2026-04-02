@@ -80,11 +80,18 @@ docker-compose.override.yml
 *.p12
 *.pfx
 *.jks
+*.keystore
 *.crt
 *.cert
 secrets/
 .vault-token
 .vault/
+!docker/
+!docker/kafka/
+!docker/kafka/secrets/
+docker/kafka/secrets/*
+!docker/kafka/secrets/.gitkeep
+!docker/kafka/secrets/README.md
 
 # Security tooling
 # dependency-check-report.html (ignored below in Reports section)
