@@ -1,6 +1,6 @@
 # Monitor Operations Runbook
 
-[English](#english) | [Espanol](#espanol)
+[English](#english) | [Español](#español)
 
 ---
 
@@ -49,8 +49,8 @@ npm run build
 
 #### Start backend
 
-```powershell
-Set-Location "C:\Users\careb\VisualStudio Workspace\Monitor"
+```bash
+cd /path/to/Monitor
 mvn --batch-mode spring-boot:run
 ```
 
@@ -62,8 +62,8 @@ Expected behavior:
 
 #### Start frontend
 
-```powershell
-Set-Location "C:\Users\careb\VisualStudio Workspace\Monitor\frontend"
+```bash
+cd /path/to/Monitor/frontend
 npm run dev
 ```
 
@@ -76,16 +76,16 @@ Expected behavior:
 
 #### Backend HTTP listener
 
-```powershell
-curl.exe -I --max-time 5 http://localhost:8080/
+```bash
+curl -I --max-time 5 http://localhost:8080/
 ```
 
 A `404` response still proves that the web server is listening.
 
 #### SSE handshake and heartbeat
 
-```powershell
-curl.exe -N --max-time 20 http://localhost:8080/api/events/stream
+```bash
+curl -N --max-time 20 http://localhost:8080/api/events/stream
 ```
 
 Expected output pattern:
@@ -98,8 +98,8 @@ Expected output pattern:
 
 #### Frontend root page
 
-```powershell
-curl.exe --max-time 20 http://localhost:3000/
+```bash
+curl --max-time 20 http://localhost:3000/
 ```
 
 Expected result:
@@ -108,8 +108,8 @@ Expected result:
 
 #### Frontend rewrite to backend SSE
 
-```powershell
-curl.exe -N --max-time 5 http://localhost:3000/api/events/stream
+```bash
+curl -N --max-time 5 http://localhost:3000/api/events/stream
 ```
 
 Expected result:
@@ -176,8 +176,8 @@ Check:
 
 ---
 
-<a id="espanol"></a>
-## Espanol
+<a id="español"></a>
+## Español
 
 ### Resumen Ejecutivo
 
@@ -203,15 +203,15 @@ El sistema debe considerarse operativo cuando:
 
 #### Backend
 
-```powershell
-Set-Location "C:\Users\careb\VisualStudio Workspace\Monitor"
+```bash
+cd /path/to/Monitor
 mvn --batch-mode clean verify
 ```
 
 #### Frontend
 
-```powershell
-Set-Location "C:\Users\careb\VisualStudio Workspace\Monitor\frontend"
+```bash
+cd /path/to/Monitor/frontend
 npm install
 npm run lint
 npm run build
@@ -221,8 +221,8 @@ npm run build
 
 #### Iniciar backend
 
-```powershell
-Set-Location "C:\Users\careb\VisualStudio Workspace\Monitor"
+```bash
+cd /path/to/Monitor
 mvn --batch-mode spring-boot:run
 ```
 
@@ -234,8 +234,8 @@ Comportamiento esperado:
 
 #### Iniciar frontend
 
-```powershell
-Set-Location "C:\Users\careb\VisualStudio Workspace\Monitor\frontend"
+```bash
+cd /path/to/Monitor/frontend
 npm run dev
 ```
 
@@ -248,16 +248,16 @@ Comportamiento esperado:
 
 #### Listener HTTP del backend
 
-```powershell
-curl.exe -I --max-time 5 http://localhost:8080/
+```bash
+curl -I --max-time 5 http://localhost:8080/
 ```
 
 Una respuesta `404` sigue demostrando que el servidor web esta escuchando.
 
 #### Handshake SSE y heartbeat
 
-```powershell
-curl.exe -N --max-time 20 http://localhost:8080/api/events/stream
+```bash
+curl -N --max-time 20 http://localhost:8080/api/events/stream
 ```
 
 Patron esperado:
@@ -270,8 +270,8 @@ Patron esperado:
 
 #### Pagina principal del frontend
 
-```powershell
-curl.exe --max-time 20 http://localhost:3000/
+```bash
+curl --max-time 20 http://localhost:3000/
 ```
 
 Resultado esperado:
@@ -280,8 +280,8 @@ Resultado esperado:
 
 #### Rewrite del frontend hacia el SSE del backend
 
-```powershell
-curl.exe -N --max-time 5 http://localhost:3000/api/events/stream
+```bash
+curl -N --max-time 5 http://localhost:3000/api/events/stream
 ```
 
 Resultado esperado:

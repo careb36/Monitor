@@ -14,6 +14,11 @@ rectangle "Spring Boot Backend" {
   component "MonitorMailProperties\nTyped mail config" as MailProps
   component "MonitorPollingTargetsProperties\nTyped polling config" as PollingProps
   component "JacksonConfig\nObjectMapper bean" as JacksonConfig
+  component "SecurityConfig\nHTTP Basic + HSTS + CSP" as SecurityConfig
+  component "CorsConfig\nOrigin whitelist" as CorsConfig
+  component "RateLimitingFilter\nBucket4j per-IP limiting" as RateLimit
+  component "SecurityAuditAspect\nAOP audit logging" as AuditAspect
+  component "CriticalOutboxRepository\nOutbox persistence" as OutboxRepo
 }
 
 queue "Kafka topic\nlog-traza" as Kafka
@@ -34,6 +39,12 @@ Polling --> EventBus : publish(INFRASTRUCTURE)
 Polling --> EmailService : sendCriticalAlert() when DOWN
 EmailService --> MailProps : read sender / recipients / subject prefix
 EmailService --> SMTP : send plain-text email
+EmailService --> OutboxRepo : persist CRITICAL before delivery
+
+SecurityConfig --> SseController : HTTP Basic auth per profile
+CorsConfig --> SseController : CORS origin validation
+RateLimit --> SseController : per-IP rate limiting
+AuditAspect --> SseController : security audit logging
 
 note right of EventBus
 Responsibilities:
