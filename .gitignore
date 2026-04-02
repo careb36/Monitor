@@ -80,6 +80,7 @@ docker-compose.override.yml
 *.p12
 *.pfx
 *.jks
+*.keystore
 *.crt
 *.cert
 secrets/
