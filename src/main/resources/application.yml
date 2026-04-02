@@ -29,9 +29,9 @@ spring:
 
   # ─── Mail (SMTP with TLS – CWE-319: no cleartext transmission) ──────────────
   mail:
-    host: ${MAIL_HOST:smtp.groupwise.example.com}
+    host: ${MAIL_HOST}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:monitor-alerts@example.com}
+    username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
     properties:
       mail:
@@ -77,8 +77,8 @@ monitor:
     from: ${MAIL_FROM:monitor-alerts@example.com}
     subject-prefix: "CRITICAL ALERT"
     recipients:
-      - ${MAIL_RECIPIENT_1:ops-team@example.com}
-      - ${MAIL_RECIPIENT_2:oncall@example.com}
+        - ${MAIL_RECIPIENT_1}
+        - ${MAIL_RECIPIENT_2}
     retry-interval-ms: 60000   # How often to retry failed email sends
 
   # SSE keep-alive
