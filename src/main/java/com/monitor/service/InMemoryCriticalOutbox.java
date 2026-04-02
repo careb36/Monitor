@@ -18,8 +18,23 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Optimized in-memory implementation of CriticalOutbox.
- * Uses a bounded buffer for delivered entries to prevent memory leaks.
+ * Default in-memory implementation of {@link CriticalOutbox}.
+ *
+ * <p>All state lives in JVM heap using {@link ConcurrentHashMap} and a
+ * {@link ConcurrentLinkedQueue} for delivered-entry history. This implementation is
+ * thread-safe and requires no external infrastructure, making it suitable for
+ * development, testing, and deployments where event durability across restarts is
+ * not required.</p>
+ *
+ * <p><strong>Memory management:</strong> Undelivered entries are kept indefinitely
+ * until delivered. Delivered entries are retained up to {@code maxDeliveredEntries}
+ * (default: 1000) to support SSE replay; the oldest delivered entries are evicted
+ * when the limit is exceeded.</p>
+ *
+ * <p>Activate the JPA-backed implementation instead by setting
+ * {@code monitor.outbox.jpa.enabled=true}.</p>
+ *
+ * @see JpaCriticalOutbox
  */
 @Component
 @ConditionalOnProperty(name = "monitor.outbox.jpa.enabled", havingValue = "false", matchIfMissing = true)
@@ -34,12 +49,24 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
 
     private final int maxDeliveredEntries;
 
+    /**
+     * @param maxDeliveredEntries maximum number of delivered entries to retain in memory
+     *                            for SSE replay; controlled by
+     *                            {@code monitor.outbox.in-memory.max-delivered-entries}
+     *                            (default: 1000)
+     */
     public InMemoryCriticalOutbox(
             @Value("${monitor.outbox.in-memory.max-delivered-entries:1000}") int maxDeliveredEntries) {
         this.maxDeliveredEntries = maxDeliveredEntries;
         log.info("Initialized InMemoryCriticalOutbox with maxDeliveredEntries={}", maxDeliveredEntries);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The new entry is immediately added to {@code pendingIds} so that the next
+     * {@link #findDue} call can return it for dispatch.</p>
+     */
     @Override
     public long save(UnifiedEvent event) {
         long id = sequence.incrementAndGet();
@@ -55,11 +82,19 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
         return id;
     }
 
+    /** {@inheritDoc} */
     @Override
     public Optional<OutboxEntry> find(long id) {
         return Optional.ofNullable(entries.get(id));
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Updates the entry in-place (records are immutable; a new record replaces the old one),
+     * removes the ID from {@code pendingIds}, and appends it to the delivered-history queue.
+     * Evicts the oldest delivered entry from the map when the history queue exceeds the limit.</p>
+     */
     @Override
     public void markDelivered(long id) {
         OutboxEntry current = entries.get(id);
@@ -94,6 +129,7 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
         }
     }
 
+    /** {@inheritDoc} */
     @Override
     public void markRetry(long id, Instant nextAttemptAt, String reason) {
         OutboxEntry current = entries.get(id);
@@ -119,6 +155,7 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
                 id, updated.attempts(), nextAttemptAt, reason);
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<OutboxEntry> findDue(Instant now, int limit) {
         return pendingIds.stream()
@@ -130,6 +167,7 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
                 .toList();
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<OutboxEntry> findAfterId(long lastId, int limit) {
         return entries.keySet().stream()
@@ -140,6 +178,7 @@ public class InMemoryCriticalOutbox implements CriticalOutbox {
                 .toList();
     }
 
+    /** {@inheritDoc} */
     @Override
     public long pendingCount() {
         return pendingIds.size();

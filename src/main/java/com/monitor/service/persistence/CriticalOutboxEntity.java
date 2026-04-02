@@ -16,6 +16,23 @@ import jakarta.persistence.Version;
 
 import java.time.Instant;
 
+/**
+ * JPA entity that persists a critical-event outbox entry in the {@code CRITICAL_OUTBOX} table.
+ *
+ * <p>Each row represents a single {@link com.monitor.model.UnifiedEvent} with
+ * {@link com.monitor.model.Severity#CRITICAL} severity that must be delivered at least once.
+ * The pipeline updates the row after each delivery attempt, tracking the attempt count,
+ * delivery status, and the next scheduled retry time.</p>
+ *
+ * <p>An optimistic-locking version column ({@code ROW_VERSION}) prevents concurrent
+ * updates from multiple application instances silently overwriting each other's changes.</p>
+ *
+ * <p>The compound index {@code IDX_OUTBOX_PENDING_DUE} ({@code DELIVERED, NEXT_ATTEMPT_AT})
+ * supports the most frequent query: finding undelivered entries due for dispatch.</p>
+ *
+ * @see CriticalOutboxRepository
+ * @see com.monitor.service.JpaCriticalOutbox
+ */
 @Entity
 @Table(
     name = "CRITICAL_OUTBOX",
