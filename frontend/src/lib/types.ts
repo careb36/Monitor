@@ -15,6 +15,5 @@ export interface MonitorState {
   infrastructure: UnifiedEvent[];
   logs: UnifiedEvent[];
   connected: ConnectionStatus;
-  lastEventTimestamp: number;
 }
 

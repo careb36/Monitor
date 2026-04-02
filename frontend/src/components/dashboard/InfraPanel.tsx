@@ -72,14 +72,14 @@ function InfraCard({ event }: { event: UnifiedEvent }) {
   return (
     <div className={`flex flex-col p-3 rounded-lg border shadow-sm ${offline ? 'bg-[#0a0a0a] border-[#222]' : 'border-border-subtle bg-bg-card'}`}>
       <div className="flex items-center justify-between mb-2">
-      <span className="font-semibold text-sm truncate mr-2" title={event.source}>
-        {event.source}
-      </span>
-      <span
+        <span className="font-semibold text-sm truncate mr-2" title={event.source}>
+          {event.source}
+        </span>
+        <span
           className={`px-2 py-0.5 rounded border text-[0.7rem] font-bold tracking-widest shrink-0 ${getBadgeClass(event.severity)}`}
-      >
+        >
           {severityText}
-      </span>
+        </span>
       </div>
       <span className={`text-xs ${offline ? 'text-[#555]' : 'text-text-muted'}`}>
         Last seen: {timeSince}
